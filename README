@@ -7,7 +7,7 @@ author: Christophe VG <contact@christophe.vg>
 CodeCanvas allows for definition of hierarchies with accessibility targeting the
 creation of code.
 
-Some examples:
+Some examples (NOTE: not all these features are already implemented):
 
   from codecanvas import Code, Canvas
 
