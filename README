@@ -1,0 +1,63 @@
+CodeCanvas
+A Python module to create hierarchically accessible code-structures.
+author: Christophe VG <contact@christophe.vg>
+
+---
+
+CodeCanvas allows for definition of hierarchies with accessibility targeting the
+creation of code.
+
+Some examples:
+
+  from codecanvas import Code, Canvas
+
+  # create a canvas
+  canvas = Canvas()
+
+  # add code and tag them for later access
+  canvas.append(Code("1")).tag("code1")
+  canvas.append(Code("2")).tag("code2")
+
+  # add hierarchical code, access through variables
+  code1b = canvas.select("code1").append(Code("1b")).tag("code1b")
+  code1b.before().insert(Code("1a")).tag("code1a")
+  
+  # add more tags and access multiple tags globally
+  canvas.select("code1a").tag("child")
+  canvas.select("code1b").tag("child")
+  canvas.select("code1").append(Code("1c")).tag("child")
+  canvas.select("code1").append(Code("1d")).tag("child")
+  canvas.find("child").tag("child of code1")
+  
+  # append accepts multiple arguments and result allows all to be tagged
+  canvas.select("code2").append(Code("2a"), Code("2b"), Code("2c")).tag("child")
+  
+  # localized actions
+  canvas.select("code2", "child").tag("child of code2")
+  
+  # mark code sticky and force order of children
+  canvas.select("code1a").stick()
+  canvas.select("code1").first().insert(Code("1aa"))
+  canvas.select("code2").first().insert(Code("2aa"))
+  
+  print str(canvas)
+  
+  1 [code1]
+    1a [code1a,child,child of code1] <sticky>
+    1aa
+    1b [code1b,child,child of code1]
+    1c [child,child of code1]
+    1d [child,child of code1]
+  2 [code2]
+    2aa
+    2a [child,child of code2]
+    2b [child,child of code2]
+    2c [child,child of code2]
+
+The default Code class accepts strings. But it is possible to inherit from this
+class to create your own Code snippets. This for example allows you to create
+Code snippets that don't have children.
+
+Although that CodeCanvas comes with __str__ support, there is also a
+CanvasVisitor base-class that allows you to implement custom visitors to render
+your custom Code classes.
