@@ -106,6 +106,25 @@ class TestCodeCanvas(unittest.TestCase):
     self.assertEqual(code.find("mr pink").data, "child2b2")
     self.assertIsNone(code.find("mr red"))
 
+  def test_find_with_multiple_tags(self):
+    code = Code("something").contain(
+             Code("child1").tag("child", "1").stick(),
+             Code("child2").tag("child", "2").contain(
+               Code("child2a").tag("grandchild", "a"),
+               Code("child2b").tag("grandchild", "b").contain(
+                 Code("child2b1").tag("grandgrandchild"),
+                 Code("child2b2").tag("grand", "child", "2")
+               ),
+               Code("child2c").tag("grandchild", "c")
+             ),
+             Code("child3").tag("child", "3").stick()
+           )
+    l = code.find("child", "2")
+    self.assertIsInstance(l, List)
+    self.assertEqual(len(l.codes), 2)
+    self.assertEqual(l.codes[0].data, "child2")
+    self.assertEqual(l.codes[1].data, "child2b2")
+
   # CodeLists can be returned by append, select or find
   def test_append_multiple_children_returns_codelist(self):
     l = Code("something").append(Code("child1"), Code("child2"), Code("child3"))
