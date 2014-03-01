@@ -48,6 +48,13 @@ class TestCodeCanvas(unittest.TestCase):
     code.append(Code("child1"), Code("child2"), Code("child3"))
     self.assertEqual(str(code), "something\n  child1\n  child2\n  child3")
 
+  def test_insert(self):
+    code = Code("something")
+    child2 = code.append(Code("child2"))
+    child1 = Code("child1").insert_before(child2)
+    Code("child3").insert_after(child1)
+    self.assertEqual(str(code), "something\n  child1\n  child3\n  child2")
+
   def create_code(self):
     return Code("something").contains(
              Code("child1").tag("child", "1", "sticky").stick_top(),
@@ -62,7 +69,7 @@ class TestCodeCanvas(unittest.TestCase):
              # note: child3 and child4 are swapped because child3 is sticked
              #       to the bottom !!!
              Code("child3").tag("child", "3", "sticky").stick_bottom(),
-             Code("child4")
+             Code("child4").tag("c")
            )
 
   def test_containing_structure(self):
@@ -75,7 +82,7 @@ class TestCodeCanvas(unittest.TestCase):
       child2b1 [1,b,child,grand,great]
       child2b2 [2,b,child,grand,great]
     child2c [c]
-  child4
+  child4 [c]
   child3 [3,child,sticky] <sticky>""")
 
   def test_select_single_child(self):
@@ -307,6 +314,29 @@ class TestCodeCanvas(unittest.TestCase):
 
     result = code.find("mr pink").find("child")
     self.assertIsInstance(result, List)
+
+  def test_insert_codelist(self):
+    code = self.create_code()
+    code.find("grandchild").insert_before(code.find("c"))
+    self.assertEqual("\n" + str(code),"""
+something
+  child1 [1,child,sticky] <sticky>
+  child2 [2,child]
+    child2a [a,grandchild,mr red]
+    child2b [b,grandchild,mr pink]
+      child2b1 [1,b,child,grand,great]
+      child2b2 [2,b,child,grand,great]
+    child2a [a,grandchild,mr red]
+    child2b [b,grandchild,mr pink]
+      child2b1 [1,b,child,grand,great]
+      child2b2 [2,b,child,grand,great]
+    child2c [c]
+  child2a [a,grandchild,mr red]
+  child2b [b,grandchild,mr pink]
+    child2b1 [1,b,child,grand,great]
+    child2b2 [2,b,child,grand,great]
+  child4 [c]
+  child3 [3,child,sticky] <sticky>""")
 
 if __name__ == '__main__':
   suite = unittest.TestLoader().loadTestsFromTestCase(TestCodeCanvas)

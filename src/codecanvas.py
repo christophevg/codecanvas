@@ -10,15 +10,16 @@ def maybe_list(codes):
   else:                 return List(codes)
 
 def as_list(codes):
-  if   codes is None:           return []
-  elif isinstance(codes, list): return codes
-  elif isinstance(codes, List): return list(codes)
-  else:                         return [codes]
+  if   codes is None:            return []
+  elif isinstance(codes, list):  return codes
+  elif isinstance(codes, List):  return list(codes)
+  elif isinstance(codes, tuple): return codes[0].codes
+  else:                          return [codes]
 
 # the single code/node class
 
 class Code(object):
-  def __init__(self, data):
+  def __init__(self, data=""):
     self.data     = data
     self.stick_to = None
     self.tags     = []
@@ -100,6 +101,26 @@ class Code(object):
     self.append(*children)
     return self
 
+  def _insert(self, relative, *siblings):
+    if self._parent is None: raise RuntimeError, self + " has no parent"
+    if self.sticky: raise RuntimeError, self + " is sticky, can't insert"
+    index = self._parent.floating.index(self) + relative
+    for sibling in siblings:
+      if sibling.sticky: raise RuntimeError, sibling + " is sticky, can't insert"
+      sibling._parent = self._parent
+      self._parent.floating.insert(index, sibling)
+    return maybe_list(siblings)
+
+  def insert_before(self, *siblings):
+    for sibling in siblings:
+      sibling._insert(0, self)
+    return self
+
+  def insert_after(self, *siblings):
+    for sibling in siblings:
+      sibling._insert(1, self)
+    return self
+
   def select(self, *tags):
     """
     Selects children of which the chain up to them is marked with tags.
@@ -178,6 +199,20 @@ class List(object):
     for code in self.codes: code.append(*children)
     return maybe_list(children)
 
+  def insert_before(self, *siblings):
+    siblings = as_list(siblings)
+    for code in self.codes: code.insert_before(*siblings)
+    return self
+
+  def insert_after(self, *siblings):
+    siblings = as_list(siblings)
+    for code in self.codes: code.insert_after(*siblings)
+    return self
+
+  def insert_after(self, *siblings):
+    for code in self.codes: code.insert_after(*siblings)
+    return self
+
   def contains(self, *children):
     for code in self.codes: code.contains(*children)
     return self
@@ -204,7 +239,9 @@ class List(object):
     try: getattr(visitor, "after_visit_list")(self)
     except AttributeError: pass
 
-class Canvas(Code): pass
+class Canvas(Code):
+  def __str__(self):
+    return "\n".join([str(child) for child in self.children])
 
 class Visitor(object):
   """
