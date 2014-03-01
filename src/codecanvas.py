@@ -71,7 +71,7 @@ class Code(object):
     tag   = tags[0]
     more  = len(tags) > 1
     for child in self.children:
-      if tag in child.tags:
+      if tag in child.tags or tag == "*":
         if more: codes.extend(as_list(child.select(*tags[1:])))
         else:    codes.append(child)
     return maybe_list(codes)

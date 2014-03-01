@@ -89,6 +89,45 @@ class TestCodeCanvas(unittest.TestCase):
     self.assertIs(code.select("two", "grandchild"), grandchild2)
     self.assertIsNone(code.select("two", "mr pink"))
 
+  def test_select_with_wildcard(self):
+    code = Code("something").contain(
+             Code("child1").tag("child", "1").contain(
+               Code("child1a").tag("grand", "child", "a").contain(
+                 Code("child1a1").tag("great-grand", "child", "1"),
+                 Code("child1a2").tag("great-grand", "child", "2"),
+                 Code("child1a3").tag("great-grand", "child", "3")
+               ),
+               Code("child1b").tag("grand", "child", "b").contain(
+                 Code("child1b1").tag("great-grand", "child", "1"),
+                 Code("child1b2").tag("great-grand", "child", "2", "bastard"),
+                 Code("child1b3").tag("great-grand", "child", "3")
+               ),
+               Code("child1c").tag("grand", "child", "c").contain(
+                 Code("child1c1").tag("great-grand", "child", "1"),
+                 Code("child1c2").tag("great-grand", "child", "2"),
+                 Code("child1c3").tag("great-grand", "child", "3", "bastard")
+               )
+             ),
+             Code("child2").tag("child", "2").contain(
+               Code("child2a").tag("grand", "child", "a"),
+               Code("child2b").tag("grand", "child", "b").contain(
+                 Code("child2b1").tag("great-grand", "child", "1"),
+                 Code("child2b2").tag("great-grand", "child", "2")
+               ),
+               Code("child2c").tag("grand", "child", "c")
+             ),
+             Code("child3").tag("no-child", "3").contain(
+               Code("child3a").tag("unimportant").contain(
+                 Code("child3a1").tag("bastard")
+               )
+             )
+           )
+    l = code.select("child", "*", "bastard")
+    self.assertIsInstance(l, List)
+    self.assertEqual(len(l.codes), 2)
+    self.assertEqual(l.codes[0].data, "child1b2")
+    self.assertEqual(l.codes[1].data, "child1c3")
+
   def test_find_single_grandchild(self):
     code = Code("something").contain(
              Code("child1").tag("child", "1").stick(),
