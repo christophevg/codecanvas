@@ -108,7 +108,7 @@ class List(object):
     self.codes = codes
 
   def __iter__(self):
-    return self.codes
+    return iter(self.codes)
 
   def stick(self):
     for code in self.codes: code.stick()
