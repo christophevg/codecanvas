@@ -119,6 +119,12 @@ class List(object):
   def __iter__(self):
     return iter(self.codes)
 
+  def __len__(self):
+    return len(self.codes)
+
+  def __getitem__(self, index):
+    return self.codes[index]
+
   def stick(self):
     for code in self.codes: code.stick()
     return self
