@@ -35,6 +35,15 @@ class Code(object):
     sticky   = "" if not self.sticky else " <sticky>"
     return str(self.data) + tags + sticky + children
 
+  def __iter__(self):
+    return iter(self.children)
+
+  def __len__(self):
+    return len(self.children)
+
+  def __getitem__(self, index):
+    return self.children[index]
+
   def stick(self):
     self.sticky = True
     return self

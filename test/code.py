@@ -212,9 +212,43 @@ class TestCodeCanvas(unittest.TestCase):
     self.assertEqual(l.codes[1].data, "child2b2")
 
   # TODO
+  # code iterator and indexing
+  
+  def test_code_len_and_iterator(self):
+    code = Code("something").contain(
+             Code("child1").tag("child", "1").stick(),
+             Code("child2").tag("child", "2").contain(
+               Code("child2a").tag("grandchild", "a"),
+               Code("child2b").tag("grandchild", "b").contain(
+                 Code("child2b1").tag("grandgrandchild", "a"),
+                 Code("child2b2").tag("mr pink", "b")
+               ),
+               Code("child2c").tag("grandchild", "c")
+             ),
+             Code("child3").tag("child", "3").stick()
+           )
+    self.assertEqual(len(code), 3)
+    self.assertEqual([c.data for c in code], ["child1", "child2", "child3"])
 
   def test_stick_codelist(self): pass
   def test_untstick_codelist(self): pass
+  def test_code_indexing(self):
+    code = Code("something").contain(
+             Code("child1").tag("child", "1").stick(),
+             Code("child2").tag("child", "2").contain(
+               Code("child2a").tag("grandchild", "a"),
+               Code("child2b").tag("grandchild", "b").contain(
+                 Code("child2b1").tag("grandgrandchild", "a"),
+                 Code("child2b2").tag("mr pink", "b")
+               ),
+               Code("child2c").tag("grandchild", "c")
+             ),
+             Code("child3").tag("child", "3").stick()
+           )
+    self.assertEqual(len(code), 3)
+    self.assertEqual(code[0].data, "child1")
+    self.assertEqual(code[1].data, "child2")
+    self.assertEqual(code[2].data, "child3")
 
   def test_tag_codelist(self): pass
   def test_untag_codelist(self): pass
