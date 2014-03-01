@@ -26,15 +26,15 @@ class TestCodeCanvas(unittest.TestCase):
 
   def test_code_multiple_tags(self):
     code = Code("something").tag("tagged", "more")
-    self.assertEqual(str(code), "something [tagged,more]")
+    self.assertEqual(str(code), "something [more,tagged]")
 
   def test_code_duplicate_tags(self):
     code = Code("something").tag("tagged", "more").tag("more")
-    self.assertEqual(str(code), "something [tagged,more]")
+    self.assertEqual(str(code), "something [more,tagged]")
 
   def test_code_untag(self):
     code = Code("something").tag("tagged", "more", "even more").untag("more")
-    self.assertEqual(str(code), "something [tagged,even more]")
+    self.assertEqual(str(code), "something [even more,tagged]")
 
   def test_append_child(self):
     code = Code("something")
@@ -46,78 +46,73 @@ class TestCodeCanvas(unittest.TestCase):
     code.append(Code("child1"), Code("child2"), Code("child3"))
     self.assertEqual(str(code), "something\n  child1\n  child2\n  child3")
 
-  def test_containing_structure(self):
-    code = Code("something").contain(
-             Code("child1").tag("child", "1").stick(),
-             Code("child2").tag("child", "2").contain(
-               Code("child2a").tag("grandchild", "a"),
-               Code("child2b").tag("grandchild", "b").contain(
-                 Code("child2b1").tag("grandgrandchild"),
-                 Code("child2b2").tag("grandgrandchild")
+  def create_code(self):
+    return Code("something").contains(
+             Code("child1").tag("child", "1", "sticky").stick(),
+             Code("child2").tag("child", "2").contains(
+               Code("child2a").tag("mr red", "grandchild", "a"),
+               Code("child2b").tag("mr pink", "grandchild", "b").contains(
+                 Code("child2b1").tag("great", "grand", "child", "b", "1"),
+                 Code("child2b2").tag("great", "grand", "child", "b", "2")
                ),
                Code("child2c").tag("grandchild", "c")
              ),
-             Code("child3").tag("child", "3").stick()
+             Code("child3").tag("child", "3", "sticky").stick(),
+             Code("child4")
            )
-    # mind that due to internal use of set, the order of tags is affected !
+
+  def test_containing_structure(self):
+    code = self.create_code()
     self.assertEqual(str(code), """something
-  child1 [1,child] <sticky>
+  child1 [1,child,sticky] <sticky>
   child2 [2,child]
-    child2a [a,grandchild]
-    child2b [b,grandchild]
-      child2b1 [grandgrandchild]
-      child2b2 [grandgrandchild]
+    child2a [a,grandchild,mr red]
+    child2b [b,grandchild,mr pink]
+      child2b1 [1,b,child,grand,great]
+      child2b2 [2,b,child,grand,great]
     child2c [c,grandchild]
-  child3 [3,child] <sticky>""")
+  child3 [3,child,sticky] <sticky>
+  child4""")
 
   def test_select_single_child(self):
-    code = Code("something")
-    child1 = code.append(Code("child1")).tag("one")
-    child2 = code.append(Code("child2")).tag("two")
-    child3 = code.append(Code("child3")).tag("three")
-    self.assertIs(code.select("two"), child2)
+    code = self.create_code()
+    self.assertEqual(code.select("2").data, "child2")
     self.assertIsNone(code.select("mr pink"))
   
   def test_select_single_grandchild(self):
-    code = Code("something")
-    child1 = code.append(Code("child1")).tag("one")
-    child2 = code.append(Code("child2")).tag("two")
-    child3 = code.append(Code("child3")).tag("three")
-    grandchild1 = child1.append(Code("grandchild1")).tag("grandchild")
-    grandchild2 = child2.append(Code("grandchild2")).tag("grandchild")
-    grandchild3 = child3.append(Code("grandchild3")).tag("grandchild")
-    self.assertIs(code.select("two", "grandchild"), grandchild2)
+    code = self.create_code()
+    self.assertEqual(code.select("2", "b").data, "child2b")
     self.assertIsNone(code.select("two", "mr pink"))
 
   def test_select_with_wildcard(self):
-    code = Code("something").contain(
-             Code("child1").tag("child", "1").contain(
-               Code("child1a").tag("grand", "child", "a").contain(
+    code = Code("something").contains(
+             Code("child1").tag("child", "1").contains(
+               Code("child1a").tag("grand", "child", "a").contains(
                  Code("child1a1").tag("great-grand", "child", "1"),
                  Code("child1a2").tag("great-grand", "child", "2"),
                  Code("child1a3").tag("great-grand", "child", "3")
                ),
-               Code("child1b").tag("grand", "child", "b").contain(
+               Code("child1b").tag("grand", "child", "b").contains(
                  Code("child1b1").tag("great-grand", "child", "1"),
                  Code("child1b2").tag("great-grand", "child", "2", "bastard"),
                  Code("child1b3").tag("great-grand", "child", "3")
                ),
-               Code("child1c").tag("grand", "child", "c").contain(
+               Code("child1c").tag("grand", "child", "c").contains(
                  Code("child1c1").tag("great-grand", "child", "1"),
                  Code("child1c2").tag("great-grand", "child", "2"),
                  Code("child1c3").tag("great-grand", "child", "3", "bastard")
                )
              ),
-             Code("child2").tag("child", "2").contain(
+             Code("child2").tag("child", "2").contains(
                Code("child2a").tag("grand", "child", "a"),
-               Code("child2b").tag("grand", "child", "b").contain(
+               Code("child2b").tag("grand", "child", "b").contains(
                  Code("child2b1").tag("great-grand", "child", "1"),
                  Code("child2b2").tag("great-grand", "child", "2")
                ),
                Code("child2c").tag("grand", "child", "c")
              ),
-             Code("child3").tag("no-child", "3").contain(
-               Code("child3a").tag("unimportant").contain(
+             Code("child3").tag("no-child", "3").contains(
+               Code("child3a").tag("unimportant").contains(
                  Code("child3a1").tag("bastard")
                )
              )
@@ -129,35 +124,13 @@ class TestCodeCanvas(unittest.TestCase):
     self.assertEqual(l.codes[1].data, "child1c3")
 
   def test_find_single_grandchild(self):
-    code = Code("something").contain(
-             Code("child1").tag("child", "1").stick(),
-             Code("child2").tag("child", "2").contain(
-               Code("child2a").tag("grandchild", "a"),
-               Code("child2b").tag("grandchild", "b").contain(
-                 Code("child2b1").tag("grandgrandchild"),
-                 Code("child2b2").tag("mr pink")
-               ),
-               Code("child2c").tag("grandchild", "c")
-             ),
-             Code("child3").tag("child", "3").stick()
-           )
+    code = self.create_code()
     # mind that due to internal use of set, the order of tags is affected !
-    self.assertEqual(code.find("mr pink").data, "child2b2")
-    self.assertIsNone(code.find("mr red"))
+    self.assertEqual(code.find("mr pink").data, "child2b")
+    self.assertIsNone(code.find("mr yellow"))
 
   def test_find_with_multiple_tags(self):
-    code = Code("something").contain(
-             Code("child1").tag("child", "1").stick(),
-             Code("child2").tag("child", "2").contain(
-               Code("child2a").tag("grandchild", "a"),
-               Code("child2b").tag("grandchild", "b").contain(
-                 Code("child2b1").tag("grandgrandchild"),
-                 Code("child2b2").tag("grand", "child", "2")
-               ),
-               Code("child2c").tag("grandchild", "c")
-             ),
-             Code("child3").tag("child", "3").stick()
-           )
+    code = self.create_code()
     l = code.find("child", "2")
     self.assertIsInstance(l, List)
     self.assertEqual(len(l.codes), 2)
@@ -174,58 +147,27 @@ class TestCodeCanvas(unittest.TestCase):
     self.assertEqual(l.codes[2].data, "child3")
 
   def test_select_multiple_children_returns_codelist(self):
-    code = Code("something").contain(
-             Code("child1").tag("child", "1").stick(),
-             Code("child2").tag("BASTARD", "2").contain(
-               Code("child2a").tag("grandchild", "a"),
-               Code("child2b").tag("grandchild", "b").contain(
-                 Code("child2b1").tag("grandgrandchild"),
-                 Code("child2b2").tag("mr pink")
-               ),
-               Code("child2c").tag("grandchild", "c")
-             ),
-             Code("child3").tag("child", "3").stick()
-           )
+    code = self.create_code()
     l = code.select("child")
     self.assertIsInstance(l, List)
-    self.assertEqual(len(l.codes), 2)
+    self.assertEqual(len(l.codes), 3)
     self.assertEqual(l.codes[0].data, "child1")
-    self.assertEqual(l.codes[1].data, "child3")
+    self.assertEqual(l.codes[1].data, "child2")
+    self.assertEqual(l.codes[2].data, "child3")
 
   def test_find_multiple_children_returns_codelist(self):
-    code = Code("something").contain(
-             Code("child1").tag("child", "1").stick(),
-             Code("child2").tag("child", "2").contain(
-               Code("child2a").tag("grandchild", "a"),
-               Code("child2b").tag("grandchild", "b").contain(
-                 Code("child2b1").tag("grandgrandchild", "a"),
-                 Code("child2b2").tag("mr pink", "b")
-               ),
-               Code("child2c").tag("grandchild", "c")
-             ),
-             Code("child3").tag("child", "3").stick()
-           )
+    code = self.create_code()
     l = code.find("b")
     self.assertIsInstance(l, List)
-    self.assertEqual(len(l.codes), 2)
+    self.assertEqual(len(l.codes), 3)
     self.assertEqual(l.codes[0].data, "child2b")
-    self.assertEqual(l.codes[1].data, "child2b2")
+    self.assertEqual(l.codes[1].data, "child2b1")
+    self.assertEqual(l.codes[2].data, "child2b2")
 
   # list iterator and indexing
 
   def test_codelist_len_and_iterator(self):
-    code = Code("something").contain(
-             Code("child1").tag("child", "1").stick(),
-             Code("child2").tag("child", "2").contain(
-               Code("child2a").tag("grandchild", "a"),
-               Code("child2b").tag("grandchild", "b").contain(
-                 Code("child2b1").tag("grandgrandchild", "a"),
-                 Code("child2b2").tag("mr pink", "b")
-               ),
-               Code("child2c").tag("grandchild", "c")
-             ),
-             Code("child3").tag("child", "3").stick()
-           )
+    code = self.create_code()
     l = code.select("child")
     self.assertIsInstance(l, List)
     self.assertEqual(len(l.codes), 3)
@@ -233,18 +175,7 @@ class TestCodeCanvas(unittest.TestCase):
     self.assertEqual([c.data for c in l], ["child1", "child2", "child3"])
 
   def test_codelist_indexing(self):
-    code = Code("something").contain(
-             Code("child1").tag("child", "1").stick(),
-             Code("child2").tag("child", "2").contain(
-               Code("child2a").tag("grandchild", "a"),
-               Code("child2b").tag("grandchild", "b").contain(
-                 Code("child2b1").tag("grandgrandchild", "a"),
-                 Code("child2b2").tag("mr pink", "b")
-               ),
-               Code("child2c").tag("grandchild", "c")
-             ),
-             Code("child3").tag("child", "3").stick()
-           )
+    code = self.create_code()
     l = code.select("child")
     self.assertIsInstance(l, List)
     self.assertEqual(len(l), 3)
@@ -255,100 +186,60 @@ class TestCodeCanvas(unittest.TestCase):
   # code iterator and indexing
   
   def test_code_len_and_iterator(self):
-    code = Code("something").contain(
-             Code("child1").tag("child", "1").stick(),
-             Code("child2").tag("child", "2").contain(
-               Code("child2a").tag("grandchild", "a"),
-               Code("child2b").tag("grandchild", "b").contain(
-                 Code("child2b1").tag("grandgrandchild", "a"),
-                 Code("child2b2").tag("mr pink", "b")
-               ),
-               Code("child2c").tag("grandchild", "c")
-             ),
-             Code("child3").tag("child", "3").stick()
-           )
-    self.assertEqual(len(code), 3)
-    self.assertEqual([c.data for c in code], ["child1", "child2", "child3"])
+    code = self.create_code()
+    self.assertEqual(len(code), 4)
+    self.assertEqual([c.data for c in code],
+                     ["child1", "child2", "child3", "child4"])
 
   def test_code_indexing(self):
-    code = Code("something").contain(
-             Code("child1").tag("child", "1").stick(),
-             Code("child2").tag("child", "2").contain(
-               Code("child2a").tag("grandchild", "a"),
-               Code("child2b").tag("grandchild", "b").contain(
-                 Code("child2b1").tag("grandgrandchild", "a"),
-                 Code("child2b2").tag("mr pink", "b")
-               ),
-               Code("child2c").tag("grandchild", "c")
-             ),
-             Code("child3").tag("child", "3").stick()
-           )
-    self.assertEqual(len(code), 3)
+    code = self.create_code()
+    self.assertEqual(len(code), 4)
     self.assertEqual(code[0].data, "child1")
     self.assertEqual(code[1].data, "child2")
     self.assertEqual(code[2].data, "child3")
+    self.assertEqual(code[3].data, "child4")
 
   def test_stick_codelist(self):
-    code = Code("something").contain(
-             Code("child1").tag("child", "1").stick(),
-             Code("child2").tag("child", "2").contain(
-               Code("child2a").tag("grandchild", "a"),
-               Code("child2b").tag("grandchild", "b").contain(
-                 Code("child2b1").tag("grandgrandchild", "a"),
-                 Code("child2b2").tag("mr pink", "b")
-               ),
-               Code("child2c").tag("grandchild", "c")
-             ),
-             Code("child3").tag("child", "3").stick()
-           )
+    code = self.create_code()
     l = code.find("b")
     self.assertIsInstance(l, List)
-    self.assertEqual(len(l), 2)
+    self.assertEqual(len(l), 3)
     self.assertEqual(l.codes[0].data, "child2b")
-    self.assertEqual(l.codes[1].data, "child2b2")
+    self.assertEqual(l.codes[1].data, "child2b1")
+    self.assertEqual(l.codes[2].data, "child2b2")
     self.assertFalse(l.codes[0].sticky)
     self.assertFalse(l.codes[1].sticky)
+    self.assertFalse(l.codes[2].sticky)
     l2 = l.stick()
     self.assertIsInstance(l2, List)
-    self.assertEqual(len(l2), 2)
+    self.assertEqual(len(l2), 3)
     self.assertEqual(l2.codes[0].data, "child2b")
-    self.assertEqual(l2.codes[1].data, "child2b2")
+    self.assertEqual(l2.codes[1].data, "child2b1")
+    self.assertEqual(l2.codes[2].data, "child2b2")
     # check on initial list
     self.assertTrue(l.codes[0].sticky)
     self.assertTrue(l.codes[1].sticky)
+    self.assertTrue(l.codes[2].sticky)
     # check that other codes didn't get sticked, e.g. those with an "a" tag
     self.assertTrue(all([not c.sticky for c in code.find("a")]))
 
   def test_untstick_codelist(self):
-    code = Code("something").contain(
-             Code("child1").tag("child", "1").stick(),
-             Code("child2").tag("child", "2").contain(
-               Code("child2a").tag("grandchild", "a"),
-               Code("child2b").tag("grandchild", "b").stick().contain(
-                 Code("child2b1").tag("grandgrandchild", "a"),
-                 Code("child2b2").tag("mr pink", "b").stick()
-               ),
-               Code("child2c").tag("grandchild", "c")
-             ),
-             Code("child3").tag("child", "3").stick()
-           )
-    l = code.find("b")
+    code = self.create_code()
+    l = code.find("sticky")
     self.assertIsInstance(l, List)
     self.assertEqual(len(l), 2)
-    self.assertEqual(l.codes[0].data, "child2b")
-    self.assertEqual(l.codes[1].data, "child2b2")
+    self.assertEqual(l.codes[0].data, "child1")
+    self.assertEqual(l.codes[1].data, "child3")
     self.assertTrue(l.codes[0].sticky)
     self.assertTrue(l.codes[1].sticky)
     l2 = l.unstick()
     self.assertIsInstance(l2, List)
     self.assertEqual(len(l2), 2)
-    self.assertEqual(l2.codes[0].data, "child2b")
-    self.assertEqual(l2.codes[1].data, "child2b2")
+    self.assertEqual(l2.codes[0].data, "child1")
+    self.assertEqual(l2.codes[1].data, "child3")
     # check on initial list
     self.assertFalse(l.codes[0].sticky)
     self.assertFalse(l.codes[1].sticky)
-    # check that other codes didn't get unstucked
-    self.assertTrue(code.select("child")[0].sticky)
 
   def test_tag_codelist(self): pass
   def test_untag_codelist(self): pass

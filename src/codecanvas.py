@@ -54,7 +54,7 @@ class Code(object):
 
   def tag(self, *tags):
     self.tags.extend(tags)
-    self.tags = list(set(self.tags))
+    self.tags = sorted(list(set(self.tags)))
     return self
 
   def untag(self, *tags):
@@ -67,7 +67,7 @@ class Code(object):
     self.children.extend(children)
     return maybe_list(children)
 
-  def contain(self, *children):
+  def contains(self, *children):
     self.append(*children)
     return self
 
@@ -145,7 +145,7 @@ class List(object):
     for code in self.codes: code.append(*children)
     return maybe_list(children)
 
-  def contain(self, *children):
+  def contains(self, *children):
     for code in self.codes: code.contain(*children)
     return self
 
