@@ -12,12 +12,14 @@ class TestCodeCanvas(unittest.TestCase):
     code = Code("something")
     self.assertEqual(str(code), "something")
 
-  def test_code_stick(self):
-    code = Code("something").stick()
+  def test_code_stickyness(self):
+    code = Code("something").stick_top()
+    self.assertEqual(str(code), "something <sticky>")
+    code = Code("something").stick_bottom()
     self.assertEqual(str(code), "something <sticky>")
 
   def test_code_unstick(self):
-    code = Code("something").stick().unstick()
+    code = Code("something").stick_top().unstick()
     self.assertEqual(str(code), "something")
 
   def test_code_tag(self):
@@ -48,7 +50,7 @@ class TestCodeCanvas(unittest.TestCase):
 
   def create_code(self):
     return Code("something").contains(
-             Code("child1").tag("child", "1", "sticky").stick(),
+             Code("child1").tag("child", "1", "sticky").stick_top(),
              Code("child2").tag("child", "2").contains(
                Code("child2a").tag("mr red", "grandchild", "a"),
                Code("child2b").tag("mr pink", "grandchild", "b").contains(
@@ -57,7 +59,9 @@ class TestCodeCanvas(unittest.TestCase):
                ),
                Code("child2c").tag("c")
              ),
-             Code("child3").tag("child", "3", "sticky").stick(),
+             # note: child3 and child4 are swapped because child3 is sticked
+             #       to the bottom !!!
+             Code("child3").tag("child", "3", "sticky").stick_bottom(),
              Code("child4")
            )
 
@@ -71,8 +75,8 @@ class TestCodeCanvas(unittest.TestCase):
       child2b1 [1,b,child,grand,great]
       child2b2 [2,b,child,grand,great]
     child2c [c]
-  child3 [3,child,sticky] <sticky>
-  child4""")
+  child4
+  child3 [3,child,sticky] <sticky>""")
 
   def test_select_single_child(self):
     code = self.create_code()
@@ -189,15 +193,15 @@ class TestCodeCanvas(unittest.TestCase):
     code = self.create_code()
     self.assertEqual(len(code), 4)
     self.assertEqual([c.data for c in code],
-                     ["child1", "child2", "child3", "child4"])
+                     ["child1", "child2", "child4", "child3"])
 
   def test_code_indexing(self):
     code = self.create_code()
     self.assertEqual(len(code), 4)
     self.assertEqual(code[0].data, "child1")
     self.assertEqual(code[1].data, "child2")
-    self.assertEqual(code[2].data, "child3")
-    self.assertEqual(code[3].data, "child4")
+    self.assertEqual(code[2].data, "child4")
+    self.assertEqual(code[3].data, "child3")
 
   def test_stick_codelist(self):
     code = self.create_code()
@@ -210,7 +214,7 @@ class TestCodeCanvas(unittest.TestCase):
     self.assertFalse(l.codes[0].sticky)
     self.assertFalse(l.codes[1].sticky)
     self.assertFalse(l.codes[2].sticky)
-    l2 = l.stick()
+    l2 = l.stick_top()
     self.assertIsInstance(l2, List)
     self.assertEqual(len(l2), 3)
     self.assertEqual(l2.codes[0].data, "child2b")

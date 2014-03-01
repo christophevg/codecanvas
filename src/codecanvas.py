@@ -20,10 +20,20 @@ def as_list(codes):
 class Code(object):
   def __init__(self, data):
     self.data     = data
-    self.sticky   = False
+    self.stick_to = None
     self.tags     = []
-    self.children = []
+    self.sticking = {"top":[], "bottom": []}
+    self.floating = []
+    self.bottom   = []
     self._parent  = None
+
+  def _children(self):
+    return self.sticking["top"] + self.floating + self.sticking["bottom"]
+  children = property(_children)
+
+  def _sticky(self):
+    return not self.stick_to is None
+  sticky = property(_sticky)
 
   def __str__(self):
     children = ""
@@ -44,12 +54,30 @@ class Code(object):
   def __getitem__(self, index):
     return self.children[index]
 
-  def stick(self):
-    self.sticky = True
+  def stick_top(self):
+    if self.stick_to == "top": return
+    if self._parent:
+      if self.sticky: self._parent.sticking["bottom"].remove(self)
+      else:           self._parent.floating.remove(self)
+      self._parent.sticking["top"].append(self)
+    self.stick_to = "top"
+    return self
+
+  def stick_bottom(self):
+    if self.stick_to == "bottom": return
+    if self._parent:
+      if self.sticky: self._parent.sticking["top"].remove(self)
+      else:           self._parent.floating.remove(self)
+      self._parent.sticking["bottom"].append(self)
+    self.stick_to = "bottom"
     return self
 
   def unstick(self):
-    self.sticky = False
+    if not self.sticky: return
+    if self._parent:
+      self._parent.sticking[self.stick_to].remove(self)
+      self._parent.floating.append(self)
+    self.stick_to = None
     return self
 
   def tag(self, *tags):
@@ -63,8 +91,9 @@ class Code(object):
 
   def append(self, *children):
     for child in children:
-      child._parent = self 
-    self.children.extend(children)
+      child._parent = self
+      if child.sticky: self.sticking[child.stick_to].append(child)
+      else: self.floating.append(child)
     return maybe_list(children)
 
   def contains(self, *children):
@@ -125,8 +154,12 @@ class List(object):
   def __getitem__(self, index):
     return self.codes[index]
 
-  def stick(self):
-    for code in self.codes: code.stick()
+  def stick_top(self):
+    for code in self.codes: code.stick_top()
+    return self
+
+  def stick_bottom(self):
+    for code in self.codes: code.stick_bottom()
     return self
 
   def unstick(self):
