@@ -55,7 +55,7 @@ class TestCodeCanvas(unittest.TestCase):
                  Code("child2b1").tag("great", "grand", "child", "b", "1"),
                  Code("child2b2").tag("great", "grand", "child", "b", "2")
                ),
-               Code("child2c").tag("grandchild", "c")
+               Code("child2c").tag("c")
              ),
              Code("child3").tag("child", "3", "sticky").stick(),
              Code("child4")
@@ -70,7 +70,7 @@ class TestCodeCanvas(unittest.TestCase):
     child2b [b,grandchild,mr pink]
       child2b1 [1,b,child,grand,great]
       child2b2 [2,b,child,grand,great]
-    child2c [c,grandchild]
+    child2c [c]
   child3 [3,child,sticky] <sticky>
   child4""")
 
@@ -260,13 +260,49 @@ class TestCodeCanvas(unittest.TestCase):
     l = code.find("b")
     self.assertIsInstance(l, List)
     self.assertEqual(len(l), 3)
+
     l.untag("b")
     self.assertIsNone(code.find("b"))
   
-  def test_append_codelist(self): pass
-  def test_contain_codelist(self): pass
-  def test_select_codelist(self): pass
-  def test_find_codelist(self): pass
+  def test_append_codelist(self):
+    code = self.create_code()
+    l = code.find("b")
+    self.assertIsInstance(l, List)
+    self.assertEqual(len(l), 3)
+
+    new = Code("new").tag("new")
+    l.append(new)
+    self.assertIs(code.select("2","b",)[2],    new)
+    self.assertIs(code.select("2","b","1")[0], new)
+    self.assertIs(code.select("2","b","2")[0], new)
+
+  def test_contains_codelist(self):
+    code = self.create_code()
+    l = code.find("b")
+    self.assertIsInstance(l, List)
+    self.assertEqual(len(l), 3)
+
+    new = Code("new").tag("new")
+    l.contains(new)
+    self.assertIs(code.select("2","b",)[2],    new)
+    self.assertIs(code.select("2","b","1")[0], new)
+    self.assertIs(code.select("2","b","2")[0], new)
+
+  def test_select_codelist(self):
+    code = self.create_code()
+    l = code.select("child").select("grandchild")
+    self.assertIsInstance(l, List)
+    self.assertEqual(len(l), 2)
+    self.assertEqual([code.data for code in l], ["child2a","child2b"])
+
+  def test_find_codelist(self):
+    code = self.create_code()
+    result = code.find("mr pink").find("2")
+    self.assertIsInstance(result, Code)
+    self.assertEqual(result.data, "child2b2")
+
+    result = code.find("mr pink").find("child")
+    self.assertIsInstance(result, List)
 
 if __name__ == '__main__':
   suite = unittest.TestLoader().loadTestsFromTestCase(TestCodeCanvas)
