@@ -146,7 +146,7 @@ class List(object):
     return maybe_list(children)
 
   def contains(self, *children):
-    for code in self.codes: code.contain(*children)
+    for code in self.codes: code.contains(*children)
     return self
 
   def select(self, *tags):
