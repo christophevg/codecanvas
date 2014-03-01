@@ -241,8 +241,27 @@ class TestCodeCanvas(unittest.TestCase):
     self.assertFalse(l.codes[0].sticky)
     self.assertFalse(l.codes[1].sticky)
 
-  def test_tag_codelist(self): pass
-  def test_untag_codelist(self): pass
+  def test_tag_codelist(self):
+    code = self.create_code()
+    l = code.find("b")
+    self.assertIsInstance(l, List)
+    self.assertEqual(len(l), 3)
+
+    self.assertFalse("taggy" in code.find("mr pink").tags)
+    self.assertFalse("taggy" in code.select("*", "*", "1").tags)
+    self.assertFalse("taggy" in code.select("*", "*", "2").tags)
+    l.tag("taggy")
+    self.assertTrue("taggy" in code.find("mr pink").tags)
+    self.assertTrue("taggy" in code.select("*", "*", "1").tags)
+    self.assertTrue("taggy" in code.select("*", "*", "2").tags)
+
+  def test_untag_codelist(self):
+    code = self.create_code()
+    l = code.find("b")
+    self.assertIsInstance(l, List)
+    self.assertEqual(len(l), 3)
+    l.untag("b")
+    self.assertIsNone(code.find("b"))
   
   def test_append_codelist(self): pass
   def test_contain_codelist(self): pass
