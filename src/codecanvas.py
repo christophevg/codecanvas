@@ -162,7 +162,7 @@ class Code(object):
 # wrapper for multiple Codes, offering the same interface, dispatching to list
 # of Codes and aggregating results
 
-class List(object):
+class List(Code):
   def __init__(self, codes=[]):
     self.codes = codes
 
