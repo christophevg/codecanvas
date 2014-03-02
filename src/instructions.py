@@ -47,8 +47,7 @@ class Function(Identified, WithoutChildModification, Code):
     if isinstance(params, list): params = ParameterList(params)
     assert isinstance(params, ParameterList)
 
-    super(Function, self).__init__({"id":name, "type":type, 
-                                    "params": params, "body": body})
+    super(Function, self).__init__({"id":name, "type":type, "params": params})
     self.id     = name
     self.type   = type
     self.params = params
@@ -85,8 +84,7 @@ class Parameter(Fragment):
 # Statements
 
 class Statement(Code): pass
-class BlockStmt(Statement):
-  def __repr__(self): return "== children"
+class BlockStmt(Statement): pass
 
 class Print(WithoutChildren, Code):
   def __init__(self, string, *args):

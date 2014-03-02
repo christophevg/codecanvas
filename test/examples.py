@@ -73,7 +73,7 @@ class TestExamples(unittest.TestCase):
 Module hello [hello]
   Section def [def]
   Section dec [dec]
-    Function {'body': == children, 'params': (), 'type': void, 'id': main}
+    Function {'params': (), 'type': void, 'id': main}
       BlockStmt 
         Print {'args': (), 'string': "Hello World\\n"}""")
 
