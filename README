@@ -95,7 +95,7 @@ The obligatory Hello World example (Note: not all features are implemented yet):
   # Add a print statement to the main function, code.Print is provided, so the
   # emitter framework can help us a bit here, by mapping it to "printf" and
   # adding the required import statement.
-  main.append(code.Print(code.StringLiteral("Hello World\n")))
+  main.body.append(code.Print("Hello World\n"))
 
   # Generate the code of the main function
   print main.accept(C())
