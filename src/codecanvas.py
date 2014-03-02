@@ -252,3 +252,15 @@ class Visitor(object):
 
   def before_visit_list(self, code): pass
   def after_visit_list(self, code):  pass
+
+# Code implementations to override default functionality
+
+class WithoutChildModification(object):
+  def append(self, *children):        raise NotImplementedError
+  def contains(self, *children):      raise NotImplementedError
+  def insert_before(self, *siblings): raise NotImplementedError
+  def insert_after(self, *siblings):  raise NotImplementedError
+
+class WithoutChildren(WithoutChildModification):
+  def _children(self): return []
+  children = property(_children)
