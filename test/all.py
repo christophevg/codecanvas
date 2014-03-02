@@ -5,14 +5,17 @@
 
 import unittest
 
-from test.code     import TestCodeCanvas
-from test.examples import TestExamples
+from test.code      import TestCodeCanvas
+from test.examples  import TestExamples
+
+from test.structure import TestStructure
 
 if __name__ == '__main__':
   tests = [ unittest.TestLoader().loadTestsFromTestCase(test)
             for test in [ 
                           TestCodeCanvas,
-                          TestExamples
+                          TestExamples,
+                          TestStructure
                          ]
           ]
 
