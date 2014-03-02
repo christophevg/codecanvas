@@ -86,7 +86,7 @@ The obligatory Hello World example (Note: not all features are implemented yet):
   # def(initions) and dec(larations). The standard emitter framework expects
   # these two sections.
   unit = Unit().append( Module("hello") )
-  # Module also automaigcally adds two sections, so you don't have to:
+  # Module also automagically adds two sections, so you don't have to:
   #            .append( Section("def"), Section("dec") )
 
   # Create a main function
