@@ -1,13 +1,13 @@
 CodeCanvas
-A Python module to create hierarchically accessible code-structures.
+Python module to build abstract syntax trees that can be emitted to program code
 author: Christophe VG <contact@christophe.vg>
 
 ---
 
-CodeCanvas allows for definition of hierarchies with accessibility targeting the
-creation of code.
+CodeCanvas allows for definition of tree-like structures with accessibility
+targeting the creation of code.
 
-Some examples:
+An examples:
 
   from codecanvas import Code, Canvas
 
