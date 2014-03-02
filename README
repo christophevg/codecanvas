@@ -64,3 +64,50 @@ Code snippets that don't have children.
 Although that CodeCanvas comes with __str__ support, there is also a
 CanvasVisitor base-class that allows you to implement custom visitors to render
 your custom Code classes.
+
+CodeCanvas implements these two features also in an abstract instruction set and
+code emitters, with one implementation, targeting C.
+
+The obligatory Hello World example (Note: not all features are implemented yet):
+
+  # Unit is an alias for Canvas, Module and Section for Code, with the added
+  # functionality to automatically create a tag on them based on their name.
+  # These are used as function hierarchy builders
+  from structure import Unit, Module
+
+  # All instructions are implementations of Code, each limiting the hierarchical
+  # functionality to one that fits their functional need.
+  import instructions as code
+
+  # Languages are implementations of the Visitor
+  import languages.C  as C
+
+  # Create a bit of structure, representing the module files containing
+  # def(initions) and dec(larations). The standard emitter framework expects
+  # these two sections.
+  unit = Unit().append( Module("hello") )
+  # Module also automaigcally adds two sections, so you don't have to:
+  #            .append( Section("def"), Section("dec") )
+
+  # Create a main function
+  main = unit.select("hello", "dec").append(code.Function(name="main"))
+
+  # Add a print statement to the main function, code.Print is provided, so the
+  # emitter framework can help us a bit here, by mapping it to "printf" and
+  # adding the required import statement.
+  main.append(code.Print(code.StringLiteral("Hello World\n")))
+
+  # Generate the code of the main function
+  print main.accept(C())
+
+  #import <stdio.h>
+  void main(void) {
+    printf("Hello World\n");
+  }
+
+  # Using the standard Emitter framework, we get all the files we need need.
+  unit.output_to("output").accept(C())
+
+  # would create a directory "output" with a file in it: hello.c, containing the
+  # code seen above. If definitions would be implemented, a corresponding
+  # hello.h file would have been create.
