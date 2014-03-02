@@ -98,16 +98,17 @@ The obligatory Hello World example (Note: not all features are implemented yet):
   main.body.append(code.Print("Hello World\n"))
 
   # Generate the code of the main function
-  print main.accept(C())
+  print main.accept(C.Emitter())
 
   #import <stdio.h>
   void main(void) {
     printf("Hello World\n");
   }
 
-  # Using the standard Emitter framework, we get all the files we need need.
-  unit.output_to("output").accept(C())
+Using the standard Emitter framework, we get all the files we need need.
 
-  # would create a directory "output" with a file in it: hello.c, containing the
-  # code seen above. If definitions would be implemented, a corresponding
-  # hello.h file would have been create.
+>>>  unit.output_to("output").accept(C.Builder())
+
+Would create a directory "output" with a file in it: hello.c, containing the
+code seen above. If definitions would be implemented, a corresponding hello.h
+file would have been create.
