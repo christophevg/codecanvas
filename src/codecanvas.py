@@ -1,6 +1,6 @@
 # codecanvas.py
 # creates hierarchically accessible code-structures
-# author: Christophe VG <contact@christophe.vg>
+# author: Christophe VG
 
 # helper functions to wrap return values in a list or not
 
@@ -142,22 +142,21 @@ class Code(object):
     tags = set(tags)
     codes = []
     class Finder(Visitor):
-      def before_visit(self, code):
+      def visit_all(self, code):
         if tags.issubset(code.tags): codes.append(code)
+        for child in code.children: child.accept(self)
     self.accept(Finder())
     return maybe_list(codes)
 
   def accept(self, visitor):
-    # allow the visitor to specify actions before
-    try: getattr(visitor, "before_visit")(self)
+    # try _all
+    try: getattr(visitor, "visit_all")(self)
     except AttributeError: pass
-    
-    # recurse down the children
-    for child in self.children: child.accept(visitor)
 
-    # allow the visitor to specify actions before
-    try: getattr(visitor, "after_visit")(self)
+    # try _specific_class_implementation
+    try: return getattr(visitor, "visit_" + self.__class__.__name__)(self)
     except AttributeError: pass
+    return ""
 
 # wrapper for multiple Codes, offering the same interface, dispatching to list
 # of Codes and aggregating results
@@ -165,6 +164,9 @@ class Code(object):
 class List(Code):
   def __init__(self, codes=[]):
     self.codes = codes
+
+  def _children(self): return self.codes
+  children = property(_children)
 
   def __iter__(self):
     return iter(self.codes)
@@ -227,18 +229,6 @@ class List(Code):
     for code in self.codes: selected.extend(as_list(code.find(*tags)))
     return maybe_list(selected)
 
-  def accept(self, visitor):
-    # allow the visitor to specify actions before
-    try: getattr(visitor, "before_visit_list")(self)
-    except AttributeError: pass
-    
-    # recurse down the wrapped codes
-    for code in self.codes: code.accept(visitor)
-
-    # allow the visitor to specify actions before
-    try: getattr(visitor, "after_visit_list")(self)
-    except AttributeError: pass
-
 class Canvas(Code):
   def __str__(self):
     return "\n".join([str(child) for child in self.children])
@@ -247,11 +237,9 @@ class Visitor(object):
   """
   Base-class for CodeCanvas-Visitors
   """
-  def before_visit(self, code): pass
-  def after_visit(self, code):  pass
-
-  def before_visit_list(self, code): pass
-  def after_visit_list(self, code):  pass
+  def visit_all(self, code): pass
+  def visit_Code(self, code): pass
+  def visit_List(self, list):  pass
 
 # Code implementations to override default functionality
 

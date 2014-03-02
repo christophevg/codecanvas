@@ -2,7 +2,8 @@
 # abstract instruction set, implemented as Code
 # author: Christophe VG
 
-from util.check import isstring, isidentifier
+from util.check   import isstring, isidentifier
+from util.visitor import visits
 
 from codecanvas import Code, WithoutChildren, WithoutChildModification, List
 
@@ -12,10 +13,13 @@ class Identified(object):
   def get_name(self): return self.id.name
   name = property(get_name)
 
-# Fragments - are instructions that aren't Codes by itself
+# Fragments - are instructions that aren't Codes by itself, but can be visited
 
 class Fragment(object):
-  def __init__(self, *args): pass
+  def accept(self, visitor):
+    try: return getattr(visitor, "visit_" + self.__class__.__name__)(self)
+    except AttributeError: pass
+    return ""
 
 class Identifier(Fragment):
   def __init__(self, name):
@@ -39,8 +43,8 @@ class Function(Identified, WithoutChildModification, Code):
     if body is None: body = BlockStmt()
 
     # params
-    if isinstance(params, list): params = ParamList(params)
-    assert isinstance(params, ParamList)
+    if isinstance(params, list): params = ParameterList(params)
+    assert isinstance(params, ParameterList)
 
     super(Function, self).__init__({"id":name, "type":type, 
                                     "params": params, "body": body})
@@ -49,10 +53,37 @@ class Function(Identified, WithoutChildModification, Code):
     self.params = params
     self.body   = body
 
-  def _children(self): return [self.params, self.body]
+  def _children(self): return [self.body]
   children = property(_children)
 
-class ParamList(List): pass
+class ParameterList(Fragment):
+  def __init__(self, parameters):
+    self.parameters = []
+    [self.append(parameter) for parameter in parameters]
+  def __iter__(self):
+    return iter(self.parameters)
+  def append(self, parameter):
+    assert isinstance(parameter, Parameter)
+    self.parameters.append(parameter)
+    return self
+
+class Parameter(Fragment):
+  def __init__(self, name, type, default=None):
+    # name
+    if isstring(name): name = Identifier(name)
+    assert isinstance(name, Identifier)
+    # type
+    assert isinstance(type, TypeExp)
+
+    assert default == None or isinstance(default, Expression)
+    self.name    = name
+    self.type    = type
+    self.default = default
+  
+# Statements
+
+class Statement(Code): pass
+class BlockStmt(Statement): pass
 
 class Print(WithoutChildren, Code):
   def __init__(self, string, *args):
@@ -61,13 +92,19 @@ class Print(WithoutChildren, Code):
     assert isinstance(string, StringLiteral)
     
     # TODO: assert args to be expressions
-    self.string =string
-    self.args = args
 
-# Statements
+    super(Print, self).__init__({"string": string, "args": args})
+    
+    self.string = string
+    self.args   = args
 
-class Statement(Code): pass
-class BlockStmt(Statement): pass
+class Import(WithoutChildren, Code):
+  def __init__(self, imported):
+    # TODO: checking
+
+    super(Import, self).__init__({"imported": imported})
+
+    self.imported = imported
 
 # Expressions
 
@@ -75,9 +112,16 @@ class Expression(Fragment): pass
 
 # Literals
 
-class StringLiteral(Fragment): pass
+class StringLiteral(Fragment):
+  def __init__(self, data):
+    self.data = data
 
 # Types
 
 class Type(Fragment): pass
 class VoidType(Type): pass
+
+# A visitor for instructions = Code or Fragment
+
+@visits([Fragment, Code])
+class Visitor(): pass

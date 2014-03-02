@@ -30,12 +30,9 @@ class TestInstructions(unittest.TestCase):
     self.assert_has_identifier(f)
     # untyped = VoidType
     self.assertIsInstance(f.type, code.VoidType)
-    # children are fixed: params and body
-    self.assertEqual(len(f.children), 2)
-    self.assertIs(f.children[0], f.params)
-    self.assertIs(f.children[1], f.body)
-    self.assertIsInstance(f.params, Code)
-    self.assertEqual(len(f.params), 0)
+    # children are fixed: body
+    self.assertEqual(len(f.children), 1)
+    self.assertIs(f.children[0], f.body)
     self.assertIsInstance(f.body,   Code)
     self.assertEqual(len(f.body), 0)
 

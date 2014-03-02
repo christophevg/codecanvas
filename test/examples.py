@@ -5,10 +5,14 @@
 import unittest
 
 from src.codecanvas import Code, List, Canvas
+from src.structure  import Unit, Module
+
+import src.instructions as code
+import src.languages.C  as C
 
 class TestExamples(unittest.TestCase):
   
-  def test_readme(self):
+  def test_readme_canvas(self):
     # create a canvas
     canvas = Canvas()
 
@@ -53,6 +57,27 @@ class TestExamples(unittest.TestCase):
   2aa
   2b [child,child of code2,code2b]
   2c [child,child of code2,code2c]""")
+
+  def test_readme_generation(self):
+    # create a compilation unit with one module, called "hello"
+    unit   = Unit()
+    module = unit.append( Module("hello") )
+
+    # create a main function
+    main = unit.select("hello", "dec").append(code.Function(name="main"))
+
+    # add a print statement to the main function
+    main.body.append(code.Print("Hello World\n"))
+
+    # Generate the code of the main function
+    self.assertEqual("\n" + C.Emitter().emit(unit), """
+#import <stdio.h>
+void main(void) {
+printf("Hello World\\n");
+}""")
+
+    C.Emitter().output_to("output").emit(unit)
+    # TODO check output directory and clean up
 
 if __name__ == '__main__':
   suite = unittest.TestLoader().loadTestsFromTestCase(TestExamples)

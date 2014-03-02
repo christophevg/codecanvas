@@ -68,7 +68,7 @@ your custom Code classes.
 CodeCanvas implements these two features also in an abstract instruction set and
 code emitters, with one implementation, targeting C.
 
-The obligatory Hello World example (Note: not all features are implemented yet):
+The obligatory Hello World example:
 
   # Unit is an alias for Canvas, Module and Section for Code, with the added
   # functionality to automatically create a tag on them based on their name.
@@ -98,7 +98,7 @@ The obligatory Hello World example (Note: not all features are implemented yet):
   main.body.append(code.Print("Hello World\n"))
 
   # Generate the code of the main function
-  print main.accept(C.Emitter())
+  print C.Emitter().emit(unit)
 
   #import <stdio.h>
   void main(void) {
@@ -107,7 +107,7 @@ The obligatory Hello World example (Note: not all features are implemented yet):
 
 Using the standard Emitter framework, we get all the files we need need.
 
->>>  unit.output_to("output").accept(C.Builder())
+>>>  C.Emitter().output_to("output").emit(unit)
 
 Would create a directory "output" with a file in it: hello.c, containing the
 code seen above. If definitions would be implemented, a corresponding hello.h
