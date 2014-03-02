@@ -97,6 +97,16 @@ The obligatory Hello World example:
   # adding the required import statement.
   main.body.append(code.Print("Hello World\n"))
 
+  # Inspect the string version:
+  print str(unit)
+
+  Module hello [hello]
+    Section def [def]
+    Section dec [dec]
+      Function {'body': == children, 'params': (), 'type': void, 'id': main}
+        BlockStmt
+          Print {'args': (), 'string': "Hello World\n"}
+
   # Generate the code of the main function
   print C.Emitter().emit(unit)
 

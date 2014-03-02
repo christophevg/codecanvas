@@ -69,6 +69,14 @@ class TestExamples(unittest.TestCase):
     # add a print statement to the main function
     main.body.append(code.Print("Hello World\n"))
 
+    self.assertEqual("\n" + str(unit), """
+Module hello [hello]
+  Section def [def]
+  Section dec [dec]
+    Function {'body': == children, 'params': (), 'type': void, 'id': main}
+      BlockStmt 
+        Print {'args': (), 'string': "Hello World\\n"}""")
+
     # Generate the code of the main function
     self.assertEqual("\n" + C.Emitter().emit(unit), """
 #import <stdio.h>

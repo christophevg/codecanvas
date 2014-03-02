@@ -44,7 +44,9 @@ class Code(object):
                     "\n".join(["  " + line for line in str(child).split("\n")])
     tags     = "" if len(self.tags) < 1 else " [" + ",".join(self.tags) + "]"
     sticky   = "" if not self.sticky else " <sticky>"
-    return str(self.data) + tags + sticky + children
+    me       = "" if self.__class__.__name__ == "Code" \
+                  else self.__class__.__name__ + " "
+    return me + str(self.data) + tags + sticky + children
 
   def __iter__(self):
     return iter(self.children)

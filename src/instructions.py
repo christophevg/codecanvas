@@ -25,6 +25,7 @@ class Identifier(Fragment):
   def __init__(self, name):
     assert isidentifier(name), "Not an Identifier: " + name
     self.name = name
+  def __repr__(self): return self.name
 
 # Declarations
 
@@ -66,6 +67,7 @@ class ParameterList(Fragment):
     assert isinstance(parameter, Parameter)
     self.parameters.append(parameter)
     return self
+  def __repr__(self): return "(" + ",".join(self.parameters) + ")"
 
 class Parameter(Fragment):
   def __init__(self, name, type, default=None):
@@ -83,7 +85,8 @@ class Parameter(Fragment):
 # Statements
 
 class Statement(Code): pass
-class BlockStmt(Statement): pass
+class BlockStmt(Statement):
+  def __repr__(self): return "== children"
 
 class Print(WithoutChildren, Code):
   def __init__(self, string, *args):
@@ -115,11 +118,14 @@ class Expression(Fragment): pass
 class StringLiteral(Fragment):
   def __init__(self, data):
     self.data = data
+  def __repr__(self):
+    return '"' + self.data.replace("\n", "\\n") + '"'
 
 # Types
 
 class Type(Fragment): pass
-class VoidType(Type): pass
+class VoidType(Type):
+  def __repr__(self): return "void"
 
 # A visitor for instructions = Code or Fragment
 
