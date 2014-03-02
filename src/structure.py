@@ -2,15 +2,15 @@
 # Structure builders for CodeCanvas
 # author: Christophe VG
 
-import codecanvas
+from codecanvas import Canvas, Code
 
-class Unit(codecanvas.Canvas):
+class Unit(Canvas):
   """
   Unit is a simple alias for Canvas
   """
   pass
 
-class AutoTag(codecanvas.Code):
+class AutoTag(Code):
   """
   AutoTag extends a simple Code with autotagging based on its data, which is
   considered a name.
