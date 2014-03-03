@@ -50,7 +50,7 @@ class Dumper(language.Dumper):
 
   # Statements
 
-  def visit_BlockStmt(self, block):
+  def visit_Block(self, block):
     return "{\n" + \
            "\n".join([child.accept(self) for child in block.children]) + \
            "\n}"
@@ -62,9 +62,33 @@ class Dumper(language.Dumper):
     return "#import " + importer.imported
 
   # Types
+  # TODO: reintroduce platform
 
   def visit_VoidType(self, type):
     return "void"
+
+  def visit_FloatType(self, type):
+    return "float"
+
+  def visit_IntegerType(self, type):
+    return "int"
+
+  def visit_LongType(self, type):
+    return "long"
+
+  def visit_BooleanType(self, type):
+    return "BOOL"
+
+  def visit_ByteType(self, type):
+    return "char"
+
+  def visit_StructuredType(self, struct):
+    return "typedef struct {\n" + \
+           "\n".join([prop.accept(self) for prop in struct.properties]) + \
+           "\n} " + struct.name.accept(self) + "_t;"
+
+  def visit_Property(self, prop):
+    return prop.type.accept(self) + " " + prop.name.accept(self) + ";"
 
   # Fragments
   

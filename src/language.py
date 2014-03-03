@@ -35,7 +35,7 @@ class Visitor(instructions.Visitor):
     for child in code.children: child.accept(self)
 
   @stacked
-  def visit_BlockStmt(self, code):
+  def visit_Block(self, code):
     for child in code.children: child.accept(self)
 
   @stacked
@@ -49,6 +49,13 @@ class Visitor(instructions.Visitor):
   @stacked
   def visit_Import(self, code):
     for child in code.children: child.accept(self)
+  
+  def visit_VoidType(self, code): return
+  def visit_IntegerType(self, code): return
+  def visit_ByteType(self, code): return
+  def visit_FloatType(self, code): return
+  def visit_BooleanType(self, code): return
+  def visit_LongType(self, type): return
 
 class Dumper(Visitor):
   """

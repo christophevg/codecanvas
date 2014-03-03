@@ -10,6 +10,7 @@ from test.examples     import TestExamples
 
 from test.structure    import TestStructure
 from test.instructions import TestInstructions
+from test.integration  import TestIntegration
 
 if __name__ == '__main__':
   tests = [ unittest.TestLoader().loadTestsFromTestCase(test)
@@ -17,7 +18,8 @@ if __name__ == '__main__':
                           TestCodeCanvas,
                           TestExamples,
                           TestStructure,
-                          TestInstructions
+                          TestInstructions,
+                          TestIntegration
                          ]
           ]
 

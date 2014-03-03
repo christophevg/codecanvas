@@ -74,7 +74,7 @@ Module hello [hello]
   Section def [def]
   Section dec [dec]
     Function {'params': (), 'type': void, 'id': main}
-      BlockStmt 
+      Block {}
         Print {'args': (), 'string': "Hello World\\n"}""")
 
     # Generate the code of the main function
