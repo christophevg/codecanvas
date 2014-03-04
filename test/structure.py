@@ -4,7 +4,7 @@
 
 import unittest
 
-from src.structure import Unit, Module, Section
+from codecanvas.structure import Unit, Module, Section
 
 class TestStructure(unittest.TestCase):
   

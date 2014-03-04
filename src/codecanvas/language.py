@@ -6,7 +6,7 @@ import os
 
 from util.visitor import stacked
 
-import instructions
+import codecanvas.instructions as instructions
 
 class Visitor(instructions.Visitor):
   def __init__(self):

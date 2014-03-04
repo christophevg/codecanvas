@@ -2,7 +2,7 @@
 # Structure builders for CodeCanvas
 # author: Christophe VG
 
-from codecanvas import Canvas, Code
+from codecanvas.base import Canvas, Code
 
 class Unit(Canvas):
   """

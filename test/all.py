@@ -5,7 +5,7 @@
 
 import unittest
 
-from test.code         import TestCodeCanvas
+from test.base         import TestBase
 from test.examples     import TestExamples
 
 from test.structure    import TestStructure
@@ -15,7 +15,7 @@ from test.integration  import TestIntegration
 if __name__ == '__main__':
   tests = [ unittest.TestLoader().loadTestsFromTestCase(test)
             for test in [ 
-                          TestCodeCanvas,
+                          TestBase,
                           TestExamples,
                           TestStructure,
                           TestInstructions,

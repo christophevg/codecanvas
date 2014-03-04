@@ -6,7 +6,7 @@ from util.check   import isstring, isidentifier
 from util.visitor import visits, novisiting
 from util.types   import TypedList, Any
 
-from codecanvas import Code, WithoutChildren, WithoutChildModification, List
+from codecanvas.base import Code, WithoutChildren, WithoutChildModification, List
 
 # Mixins
 

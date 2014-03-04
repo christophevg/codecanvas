@@ -4,9 +4,9 @@
 
 import unittest
 
-from src.codecanvas import Code, List
+from codecanvas.base import Code, List
 
-class TestCodeCanvas(unittest.TestCase):
+class TestBase(unittest.TestCase):
   
   def test_code_data(self):
     code = Code("something")
@@ -339,5 +339,5 @@ something
   child3 [3,child,sticky] <sticky>""")
 
 if __name__ == '__main__':
-  suite = unittest.TestLoader().loadTestsFromTestCase(TestCodeCanvas)
+  suite = unittest.TestLoader().loadTestsFromTestCase(TestBase)
   unittest.TextTestRunner(verbosity=2).run(suite)

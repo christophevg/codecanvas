@@ -4,11 +4,11 @@
 
 import unittest
 
-from src.codecanvas import Code, List, Canvas
-from src.structure  import Unit, Module
+from codecanvas.base       import Code, List, Canvas
+from codecanvas.structure  import Unit, Module
 
-import src.instructions as code
-import src.languages.C  as C
+import codecanvas.instructions as code
+import codecanvas.languages.C  as C
 
 class TestExamples(unittest.TestCase):
   

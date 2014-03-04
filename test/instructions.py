@@ -4,9 +4,9 @@
 
 import unittest
 
-from src.codecanvas import Code
+from codecanvas.base import Code
 
-import src.instructions as code
+import codecanvas.instructions as code
 
 class TestInstructions(unittest.TestCase):
 

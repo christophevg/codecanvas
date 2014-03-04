@@ -4,10 +4,10 @@
 
 import unittest
 
-from src.structure import Section
+from codecanvas.structure import Section
 
-import src.instructions as code
-import src.languages.C  as C
+import codecanvas.instructions as code
+import codecanvas.languages.C  as C
 
 class TestIntegration(unittest.TestCase):
 
