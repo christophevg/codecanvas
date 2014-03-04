@@ -1,0 +1,3 @@
+[submodule "lib/py-util"]
+	path = lib/py-util
+	url = https://github.com/christophevg/py-util.git
