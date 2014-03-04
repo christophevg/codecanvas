@@ -84,7 +84,7 @@ class Dumper(language.Dumper):
 
   def visit_StructuredType(self, struct):
     return "typedef struct {\n" + \
-           "\n".join([prop.accept(self) for prop in struct.properties]) + \
+           "\n".join([prop.accept(self) for prop in struct.children]) + \
            "\n} " + struct.name.accept(self) + "_t;"
 
   def visit_Property(self, prop):

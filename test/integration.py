@@ -4,7 +4,7 @@
 
 import unittest
 
-from src.codecanvas import Code
+from src.structure import Section
 
 import src.instructions as code
 import src.languages.C  as C
@@ -24,9 +24,22 @@ class TestIntegration(unittest.TestCase):
     self.assertEqualToSource(code.ByteType(),    "char" )
     self.assertEqualToSource(code.BooleanType(), "BOOL" )
 
-  def test_structured_type(self):
+  def test_empty_structured_type(self):
     struct = code.StructuredType("something")
+    self.assertEqualToSource(struct, "typedef struct {\n\n} something_t;")
+
+  def test_append_property_to_structured_type(self):
+    struct = code.StructuredType("something")
+    struct.append(code.Property("prop1", code.FloatType()))
+    self.assertEqualToSource(struct, "typedef struct {\nfloat prop1;\n} something_t;")
+
+  def test_structured_type_tagging(self):
+    section = Section("test")
+    struct  = code.StructuredType("something")
     struct.tag("struct_something")
+    section.append(struct)
+    section.select("struct_something").append(code.Property("prop1", code.FloatType()))
+    self.assertEqualToSource(struct, "typedef struct {\nfloat prop1;\n} something_t;")
 
   def test_simple_function(self):
     tree = code.Function("name")

@@ -56,6 +56,13 @@ class Visitor(instructions.Visitor):
   def visit_FloatType(self, code): return
   def visit_BooleanType(self, code): return
   def visit_LongType(self, type): return
+  
+  @stacked
+  def visit_StructuredType(self, code):
+    for child in code.children: child.accept(self)
+
+  @stacked
+  def visit_Property(self, code): return
 
 class Dumper(Visitor):
   """

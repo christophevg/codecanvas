@@ -202,15 +202,16 @@ class StructuredType(Statement):
     assert isinstance(name, Identifier)
     super(StructuredType, self).__init__({"name":name})
     self.name       = name
-    self.properties = TypedList(Any(Property, Comment), properties)
   def __repr__(self):
     return "struct " + self.name + \
-           "(" + ",".join(",", [prop for prop in self.properties]) + ")"
+           "(" + ",".join(",", [prop for prop in self.children]) + ")"
 
-class Property(Fragment):
+class Property(WithoutChildModification, Code):
   def __init__(self, name, type):
+    if isstring(name): name = Identifier(name)
     assert isinstance(name, Identifier)
-    assert isinstance(type, TypeExp), "expected TypeExp but got " + type.__class__.__name__
+    assert isinstance(type, Type), "expected Type but got " + type.__class__.__name__
+    super(Property, self).__init__({"name": name, "type": type})
     self.name = name
     self.type = type
   def __repr__(self): return "property " + self.name + ":" + self.type
@@ -242,7 +243,7 @@ class SimpleVariable(Variable):
 
 class Object(SimpleVariable): pass
 
-class Property(Object):
+class ObjectProperty(Object):
   def __init__(self, obj, property):
     assert isinstance(obj, ObjectExp)
     assert isinstance(property, Identifier)
