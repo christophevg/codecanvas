@@ -84,8 +84,7 @@ void main(void) {
 printf("Hello World\\n");
 }""")
 
-    C.Emitter().output_to("output").emit(unit)
-    # TODO check output directory and clean up
+    #C.Emitter().output_to("output").emit(unit)
 
 if __name__ == '__main__':
   suite = unittest.TestLoader().loadTestsFromTestCase(TestExamples)
