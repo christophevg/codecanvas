@@ -30,8 +30,8 @@ class Identifier(Fragment):
 
 # Declarations
 
-class Function(Identified, WithoutChildModification, Code):
-  def __init__(self, name, type=None, params=[], body=None):
+class Function(Identified, Code):
+  def __init__(self, name, type=None, params=[]):
     # name
     assert not name is None, "A function needs at least a name." # TODO: extend
     if isstring(name): name = Identifier(name)
@@ -41,9 +41,6 @@ class Function(Identified, WithoutChildModification, Code):
     if type is None: type = VoidType()
     assert isinstance(type, Type), "Return-type should be a Type"
 
-    # body
-    if body is None: body = Block()
-
     # params
     if isinstance(params, list): params = ParameterList(params)
     assert isinstance(params, ParameterList)
@@ -52,10 +49,6 @@ class Function(Identified, WithoutChildModification, Code):
     self.id     = name
     self.type   = type
     self.params = params
-    self.body   = body
-
-  def _children(self): return [self.body]
-  children = property(_children)
 
 class ParameterList(Fragment):
   def __init__(self, parameters):
@@ -88,10 +81,6 @@ class Statement(Code):
   def __init__(self, data):
     super(Statement, self).__init__(data)
 
-class Block(Statement):
-  def __init__(self):
-    super(Statement, self).__init__({})
-
 class IfStatement(WithoutChildModification, Statement):
   def __init__(self, expression, true_clause, false_clause=None):
     assert isinstance(expression, Expression)
@@ -115,12 +104,7 @@ class Inc(MutUnOp): pass
 class Dec(MutUnOp): pass
 
 @novisiting
-class ImmutUnOp(WithoutChildren, Statement):
-  def __init__(self, operand):
-    assert isinstance(operand, Expression)
-    self.operand = operand
-  def ends(self):
-    return True
+class ImmutUnOp(WithoutChildren, Statement): pass
 
 class Print(WithoutChildren, Statement):
   def __init__(self, string, *args):
@@ -146,6 +130,7 @@ class Raise(ImmutUnOp): pass
 class Comment(ImmutUnOp):
   def __init__(self, comment):
     assert isstring(comment)
+    super(Comment, self).__init__({"comment": comment})
     self.comment = comment
   def __str__(self):
     return self.comment
@@ -173,28 +158,23 @@ class Return(Statement):
 
 @novisiting
 class CondLoop(Statement):
-  def __init__(self, condition, body):
+  def __init__(self, condition):
     assert isinstance(condition, Expression)
-    assert isinstance(body, Statement)
+    super(CondLoop, self).__init__({"condition": condition})
     self.condition = condition
-    self.body      = body
 
 class WhileDo(CondLoop): pass
 class RepeatUntil(CondLoop): pass
 
 class For(Statement):
-  def __init__(self, init, check, change, body=None):
+  def __init__(self, init, check, change):
     assert isinstance(init,   Statement) and not isinstance(init,   Block)
     assert isinstance(check,  Expression)
     assert isinstance(change, Statement) and not isinstance(change, Block)
-    if body == None:
-      body = Block()
-    else:
-      assert isinstance(body, Block)
+    super(For, self).__init__({"init": init, "check": check, "change": change})
     self.init   = init
     self.check  = check
     self.change = change
-    self.body   = body
 
 class StructuredType(Statement):
   def __init__(self, name, properties=[]):
@@ -299,7 +279,7 @@ class MethodCall(Expression):
 # Literals
 
 @novisiting
-class Literal(Fragment): pass
+class Literal(Expression): pass
 
 class StringLiteral(Literal):
   def __init__(self, data):
@@ -350,6 +330,12 @@ class AtomLiteral(Literal):
 # Types
 
 class Type(Fragment): pass
+
+class NamedType(Type):
+  def __init__(self, name):
+    self.name = name
+  def __repr__(self): return "type " + self.name
+  
 class VoidType(Type):
   def __repr__(self): return "void"
 

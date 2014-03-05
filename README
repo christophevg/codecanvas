@@ -95,7 +95,7 @@ The obligatory Hello World example:
   # Add a print statement to the main function, code.Print is provided, so the
   # emitter framework can help us a bit here, by mapping it to "printf" and
   # adding the required import statement.
-  main.body.append(code.Print("Hello World\n"))
+  main.append(code.Print("Hello World\n"))
 
   # Inspect the string version:
   print str(unit)
@@ -103,9 +103,8 @@ The obligatory Hello World example:
   Module hello [hello]
     Section def [def]
     Section dec [dec]
-      Function {'body': == children, 'params': (), 'type': void, 'id': main}
-        BlockStmt
-          Print {'args': (), 'string': "Hello World\n"}
+      Function {'params': (), 'type': void, 'id': main}
+        Print {'args': (), 'string': "Hello World\n"}
 
   # Generate the code of the main function
   print C.Emitter().emit(unit)

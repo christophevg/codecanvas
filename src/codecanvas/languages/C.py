@@ -11,6 +11,8 @@ class Emitter(object):
   def __init__(self):
     self.output = None
 
+  def __str__(self): return "C Emitter"
+
   def output_to(self, output):
     self.output = output
     return self
@@ -40,7 +42,9 @@ class Dumper(language.Dumper):
   """  
   def visit_Function(self, function):
     return function.type.accept(self) + " " + function.name + \
-           function.params.accept(self) + " " + function.body.accept(self)
+           function.params.accept(self) + " " +  "{\n" + \
+           "\n".join([child.accept(self) for child in function.children]) + \
+           "\n}"
 
   def visit_ParameterList(self, params):
     return "(" + \
@@ -49,11 +53,6 @@ class Dumper(language.Dumper):
            ")"
 
   # Statements
-
-  def visit_Block(self, block):
-    return "{\n" + \
-           "\n".join([child.accept(self) for child in block.children]) + \
-           "\n}"
 
   def visit_Print(self, printed):
     return "printf(" + printed.string.accept(self) + ");"
@@ -95,8 +94,27 @@ class Dumper(language.Dumper):
   def visit_StringLiteral(self, string):
     return '"' + string.data.replace("\n", '\\n') + '"'
 
+  def visit_BooleanLiteral(self, bool):
+    return "TRUE" if bool.value else "FALSE"
+
   def visit_Identifier(self, id):
     return id.name
+
+  # Loops
+  
+  def visit_WhileDo(self, loop):
+    return "while(" + loop.condition.accept(self) + ") {\n" + \
+           self.visit_children(loop) + \
+           "\n}"
+
+  def visit_RepeatUntil(self, loop):
+    return "do {\n" + \
+           self.visit_children(loop) + \
+           "\n} while(!(" + loop.condition.accept(self) + "));"
+
+  # general purpose child visiting
+  def visit_children(self, parent):
+    return "\n".join([child.accept(self) for child in parent.children])
 
 class Builder(language.Builder, Dumper):
   """

@@ -22,19 +22,13 @@ class TestInstructions(unittest.TestCase):
 
   def assert_is_code_without_children(self, candidate):
     self.assert_is_code_without_child_modification(candidate)
-    self.assertEqual(candidate.children, [])    
+    self.assertRaises(NotImplementedError, lambda: candidate.children)
     
   def test_named_only_function(self):
     f = code.Function("name")
-    self.assert_is_code_without_child_modification
     self.assert_has_identifier(f)
     # untyped = VoidType
     self.assertIsInstance(f.type, code.VoidType)
-    # children are fixed: body
-    self.assertEqual(len(f.children), 1)
-    self.assertIs(f.children[0], f.body)
-    self.assertIsInstance(f.body,   Code)
-    self.assertEqual(len(f.body), 0)
 
   def test_print_without_args(self):
     p = code.Print("hello world")

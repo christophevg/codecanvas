@@ -38,7 +38,7 @@ class Code(object):
 
   def __str__(self):
     children = ""
-    if len(self.children) > 0:
+    if len(self) > 0:
       for child in self.children:
         children += "\n" + \
                     "\n".join(["  " + line for line in str(child).split("\n")])
@@ -252,5 +252,6 @@ class WithoutChildModification(object):
   def insert_after(self, *siblings):  raise NotImplementedError
 
 class WithoutChildren(WithoutChildModification):
-  def _children(self): return []
+  def _children(self): raise NotImplementedError
   children = property(_children)
+  def __len__(self): return 0

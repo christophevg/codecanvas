@@ -63,6 +63,16 @@ class Visitor(instructions.Visitor):
 
   @stacked
   def visit_Property(self, code): return
+  
+  # loops
+  
+  @stacked
+  def visit_WhileDo(self, code):
+    for child in code.children: child.accept(self)
+
+  @stacked
+  def visit_RepeatUntil(self, code):
+    for child in code.children: child.accept(self)
 
 class Dumper(Visitor):
   """

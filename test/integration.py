@@ -4,17 +4,22 @@
 
 import unittest
 
-from codecanvas.structure import Section
+from codecanvas.structure import Unit, Module, Section
 
 import codecanvas.instructions as code
 import codecanvas.languages.C  as C
 
 class TestIntegration(unittest.TestCase):
 
+  def setUp(self):
+    self.unit = Unit()
+    self.unit.append(Module("test"))
+
   def assertEqualToSource(self, tree, source):
-    result = C.Emitter().emit(tree)
-    if result != source: print result
-    self.assertEqual(result, source)
+    result   = C.Emitter().emit(tree)
+    expected = source.lstrip()
+    if result != expected: print result
+    self.assertEqual(result, expected)
 
   def test_types(self):
     self.assertEqualToSource(code.VoidType(),    "void" )
@@ -48,6 +53,29 @@ class TestIntegration(unittest.TestCase):
   def test_function_with_type(self):
     tree = code.Function("name", type=code.FloatType())
     self.assertEqualToSource(tree, "float name(void) {\n\n}")
+
+  def test_while_do_loop(self):
+    self.unit.select("test", "dec") \
+      .append(code.WhileDo(code.BooleanLiteral(True)) \
+        .contains(code.Print("endless"),
+                  code.Print("loop")))
+    self.assertEqualToSource(self.unit, """
+#import <stdio.h>
+while(TRUE) {
+printf("endless");
+printf("loop");
+}""")
+
+  def test_repeat_until_loop(self):
+    self.unit.select("test", "dec") \
+      .append(code.RepeatUntil(code.BooleanLiteral(True)) \
+        .contains(code.Print("endless"), code.Print("loop")))
+    self.assertEqualToSource(self.unit, """
+#import <stdio.h>
+do {
+printf("endless");
+printf("loop");
+} while(!(TRUE));""")
 
 if __name__ == '__main__':
   suite = unittest.TestLoader().loadTestsFromTestCase(TestIntegration)
