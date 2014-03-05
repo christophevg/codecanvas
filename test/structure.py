@@ -32,11 +32,11 @@ class TestStructure(unittest.TestCase):
 
   def test_module_section_building(self):
     module = Module("name")
-    self.assertEqual(len(module.children), 2)
-    self.assertIsInstance(module.children[0], Section)
-    self.assertIsInstance(module.children[1], Section)
-    self.assertEqual(module.children[0].name, "def")
-    self.assertEqual(module.children[1].name, "dec")
+    self.assertEqual(len(module), 2)
+    self.assertIsInstance(module[0], Section)
+    self.assertIsInstance(module[1], Section)
+    self.assertEqual(module[0].name, "def")
+    self.assertEqual(module[1].name, "dec")
 
 if __name__ == '__main__':
   suite = unittest.TestLoader().loadTestsFromTestCase(TestStructure)

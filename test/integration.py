@@ -68,14 +68,27 @@ printf("loop");
 
   def test_repeat_until_loop(self):
     self.unit.select("test", "dec") \
-      .append(code.RepeatUntil(code.BooleanLiteral(True)) \
+      .append(code.RepeatUntil(code.BooleanLiteral(False)) \
         .contains(code.Print("endless"), code.Print("loop")))
     self.assertEqualToSource(self.unit, """
 #import <stdio.h>
 do {
 printf("endless");
 printf("loop");
-} while(!(TRUE));""")
+} while(!(FALSE));""")
+
+  def test_function_call_without_arguments(self):
+    self.unit.select("test", "dec") \
+      .append(code.FunctionCall("some_func"))
+    self.assertEqualToSource(self.unit, "some_func()")
+
+  def test_function_call_with_arguments(self):
+    self.unit.select("test", "dec") \
+      .append(code.FunctionCall("some_func")) \
+      .append(code.SimpleVariable("a"), 
+              code.SimpleVariable("b"),
+              code.BooleanLiteral(False))
+    self.assertEqualToSource(self.unit, "some_func(a, b, FALSE)")
 
 if __name__ == '__main__':
   suite = unittest.TestLoader().loadTestsFromTestCase(TestIntegration)

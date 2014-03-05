@@ -39,7 +39,7 @@ class Code(object):
   def __str__(self):
     children = ""
     if len(self) > 0:
-      for child in self.children:
+      for child in self:
         children += "\n" + \
                     "\n".join(["  " + line for line in str(child).split("\n")])
     tags     = "" if len(self.tags) < 1 else " [" + ",".join(self.tags) + "]"
@@ -49,7 +49,7 @@ class Code(object):
     return me + str(self.data) + tags + sticky + children
 
   def __iter__(self):
-    return iter(self.children)
+    return iter(self.children) if self.children else iter([])
 
   def __len__(self):
     return len(self.children)
@@ -131,7 +131,7 @@ class Code(object):
     codes = []
     tag   = tags[0]
     more  = len(tags) > 1
-    for child in self.children:
+    for child in self:
       if tag in child.tags or tag == "*":
         if more: codes.extend(as_list(child.select(*tags[1:])))
         else:    codes.append(child)
@@ -146,7 +146,8 @@ class Code(object):
     class Finder(Visitor):
       def visit_all(self, code):
         if tags.issubset(code.tags): codes.append(code)
-        for child in code.children: child.accept(self)
+        if len(code) > 0:
+          for child in code: child.accept(self)
     self.accept(Finder())
     return maybe_list(codes)
 
@@ -233,7 +234,7 @@ class List(Code):
 
 class Canvas(Code):
   def __str__(self):
-    return "\n".join([str(child) for child in self.children])
+    return "\n".join([str(child) for child in self])
 
 class Visitor(object):
   """

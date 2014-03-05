@@ -184,7 +184,7 @@ class StructuredType(Statement):
     self.name       = name
   def __repr__(self):
     return "struct " + self.name + \
-           "(" + ",".join(",", [prop for prop in self.children]) + ")"
+           "(" + ",".join(",", [prop for prop in self]) + ")"
 
 class Property(WithoutChildModification, Code):
   def __init__(self, name, type):
@@ -199,7 +199,7 @@ class Property(WithoutChildModification, Code):
 # Expressions
 
 @novisiting
-class Expression(Fragment): pass
+class Expression(Code): pass
 
 @novisiting
 class ExpressionList(Fragment):
@@ -216,10 +216,12 @@ class ExpressionList(Fragment):
 @novisiting
 class Variable(Expression): pass
 
-class SimpleVariable(Variable):
-  def __init__(self, name):
-    assert isinstance(name, Identifier)
-    self.name = name
+class SimpleVariable(Identified, Variable):
+  def __init__(self, id):
+    if isstring(id): id = Identifier(id)
+    assert isinstance(id, Identifier)
+    super(SimpleVariable, self).__init__({"id": id})
+    self.id = id
 
 class Object(SimpleVariable): pass
 
@@ -261,20 +263,20 @@ class Div(BinOp): pass
 class Modulo(BinOp): pass
 
 class FunctionCall(Expression):
-  def __init__(self, function, arguments=[]):
+  def __init__(self, function):
+    if isstring(function): function = Identifier(function)
     assert isinstance(function, Identifier)
+    super(FunctionCall, self).__init__({"function": function})
     self.function  = function
-    self.arguments = ExpressionList(arguments)
   def ends(self):
     return True
 
 class MethodCall(Expression):
-  def __init__(self, obj, method, arguments=[]):
+  def __init__(self, obj, method):
     assert isinstance(obj, ObjectExp)
     assert isinstance(method, Identifier)
     self.obj       = obj
     self.method    = method
-    self.arguments = ExpressionList(arguments)
 
 # Literals
 
@@ -290,6 +292,7 @@ class StringLiteral(Literal):
 class BooleanLiteral(Literal):
   def __init__(self, value):
     assert isinstance(value, bool)
+    super(BooleanLiteral, self).__init__({"value": value})
     self.value = value
   def __repr__(self):
     return "true" if self.value else "false"
@@ -309,10 +312,10 @@ class FloatLiteral(Literal):
     return str(self.value)
 
 class ListLiteral(Literal):
-  def __init__(self, expressions=[]):
-    self.expressions = ExpressionList(expressions)
+  def __init__(self):
+    super(ListLiteral, super).__init__({})
   def __repr__(self):
-    return "[" + ",".join([expr for expr in self.expressions]) + "]"
+    return "[]"
 
 class TupleLiteral(Literal):
   def __init__(self, expressions=[]):

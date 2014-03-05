@@ -43,7 +43,7 @@ class Dumper(language.Dumper):
   def visit_Function(self, function):
     return function.type.accept(self) + " " + function.name + \
            function.params.accept(self) + " " +  "{\n" + \
-           "\n".join([child.accept(self) for child in function.children]) + \
+           "\n".join([child.accept(self) for child in function]) + \
            "\n}"
 
   def visit_ParameterList(self, params):
@@ -83,7 +83,7 @@ class Dumper(language.Dumper):
 
   def visit_StructuredType(self, struct):
     return "typedef struct {\n" + \
-           "\n".join([prop.accept(self) for prop in struct.children]) + \
+           "\n".join([prop.accept(self) for prop in struct]) + \
            "\n} " + struct.name.accept(self) + "_t;"
 
   def visit_Property(self, prop):
@@ -112,9 +112,17 @@ class Dumper(language.Dumper):
            self.visit_children(loop) + \
            "\n} while(!(" + loop.condition.accept(self) + "));"
 
+  # Calls
+  
+  def visit_FunctionCall(self, call):
+    return call.function.name + "(" + self.visit_children(call, ", ")  + ")"
+
+  def visit_SimpleVariable(self, var):
+    return var.id.accept(self)
+
   # general purpose child visiting
-  def visit_children(self, parent):
-    return "\n".join([child.accept(self) for child in parent.children])
+  def visit_children(self, parent, joiner="\n"):
+    return joiner.join([child.accept(self) for child in parent])
 
 class Builder(language.Builder, Dumper):
   """
