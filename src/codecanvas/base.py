@@ -49,7 +49,10 @@ class Code(object):
     return me + str(self.data) + tags + sticky + children
 
   def __iter__(self):
-    return iter(self.children) if self.children else iter([])
+    try:
+      return iter(self.children)
+    except:
+      return iter([])
 
   def __len__(self):
     return len(self.children)
