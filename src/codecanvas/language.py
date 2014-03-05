@@ -108,7 +108,7 @@ class Builder(object):
   Mixin class for overriding default behaviour of a Dumper, allowing it to
   construct output to files.
   """
-  def __init__(self, output="out"):
+  def __init__(self, output="output"):
     self.output = output
     self.module = None
 

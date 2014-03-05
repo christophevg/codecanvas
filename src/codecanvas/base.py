@@ -46,7 +46,7 @@ class Code(object):
     sticky   = "" if not self.sticky else " <sticky>"
     me       = "" if self.__class__.__name__ == "Code" \
                   else self.__class__.__name__ + " "
-    return me + str(self.data) + tags + sticky + children
+    return (me + str(self.data) + tags + sticky + children).lstrip().rstrip()
 
   def __iter__(self):
     try:

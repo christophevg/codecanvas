@@ -27,7 +27,7 @@ class TestIntegration(unittest.TestCase):
     self.assertEqualToSource(code.LongType(),    "long" )
     self.assertEqualToSource(code.FloatType(),   "float")
     self.assertEqualToSource(code.ByteType(),    "char" )
-    self.assertEqualToSource(code.BooleanType(), "BOOL" )
+    self.assertEqualToSource(code.BooleanType(), "int"  )
 
   def test_empty_structured_type(self):
     struct = code.StructuredType("something")

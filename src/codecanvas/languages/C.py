@@ -4,12 +4,15 @@
 
 from util.visitor import stacked
 
-from .. import language
-from .. import instructions as code
+from codecanvas import language
+from codecanvas import instructions as code
+
+from codecanvas.platform import Platform
 
 class Emitter(object):
-  def __init__(self):
+  def __init__(self, platform=None):
     self.output = None
+    self.platform = platform
 
   def __str__(self): return "C Emitter"
 
@@ -20,8 +23,8 @@ class Emitter(object):
   def emit(self, code):
     # two phases, two visitations: first to extend the code, next to dump it
     code.accept(Extender())
-    if self.output: code.accept(Builder(self.output))
-    else: return code.accept(Dumper())
+    if self.output: code.accept(Builder(self.output, platform=self.platform))
+    else: return code.accept(Dumper(platform=self.platform))
 
 class Extender(language.Visitor):
   """
@@ -36,10 +39,25 @@ class Extender(language.Visitor):
                           .stick_top() \
                           .tag("import_stdio") \
 
+class Generic(Platform):
+  def type(self, type):
+    return {
+      "ByteType"    : "char",
+      "BooleanType" : "int",
+      "IntegerType" : "int",
+      "FloatType"   : "float",
+      "LongType"    : "long"
+    }[str(type)]
+
 class Dumper(language.Dumper):
   """
   Visitor for CodeCanvas-based ASTs producing actual C code.
   """  
+  def __init__(self, platform=None):
+    if platform is None: platform = Generic()
+    assert isinstance(platform, Platform)
+    self.platform = platform
+
   def visit_Function(self, function):
     return function.type.accept(self) + " " + function.name + \
            function.params.accept(self) + " " +  "{\n" + \
@@ -61,7 +79,6 @@ class Dumper(language.Dumper):
     return "#import " + importer.imported
 
   # Types
-  # TODO: reintroduce platform
 
   def visit_NamedType(self, type):
     return type.name
@@ -70,19 +87,19 @@ class Dumper(language.Dumper):
     return "void"
 
   def visit_FloatType(self, type):
-    return "float"
+    return self.platform.type(type)
 
   def visit_IntegerType(self, type):
-    return "int"
+    return self.platform.type(type)
 
   def visit_LongType(self, type):
-    return "long"
+    return self.platform.type(type)
 
   def visit_BooleanType(self, type):
-    return "BOOL"
+    return self.platform.type(type)
 
   def visit_ByteType(self, type):
-    return "char"
+    return self.platform.type(type)
 
   def visit_ManyType(self, type):
     return type.subtype.accept(self) + "*"
@@ -141,5 +158,9 @@ class Builder(language.Builder, Dumper):
   Visitor for CodeCanvas-based ASTs producing actual C code, and constructing
   files as needed.
   """
+  def __init__(self, output, platform=None):
+    language.Builder.__init__(self, output)
+    Dumper.__init__(self, platform)
+
   def ext(self, section):
     return { "def": "h", "dec": "c" }[section]
