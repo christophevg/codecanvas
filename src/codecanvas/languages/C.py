@@ -84,6 +84,9 @@ class Dumper(language.Dumper):
   def visit_ByteType(self, type):
     return "char"
 
+  def visit_ManyType(self, type):
+    return type.subtype.accept(self) + "*"
+
   def visit_StructuredType(self, struct):
     return "typedef struct {\n" + \
            "\n".join([prop.accept(self) for prop in struct]) + \

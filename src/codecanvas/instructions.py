@@ -16,7 +16,7 @@ class Identified(object):
 
 # Fragments - are instructions that aren't Codes by itself, but can be visited
 
-class Fragment(object):
+class Fragment(Code):
   def accept(self, visitor):
     try: return getattr(visitor, "visit_" + self.__class__.__name__)(self)
     except AttributeError: pass
@@ -63,14 +63,16 @@ class ParameterList(Fragment):
   def __repr__(self): return "(" + ",".join(self.parameters) + ")"
 
 class Parameter(Fragment):
-  def __init__(self, name, type, default=None):
+  def __init__(self, name, type=None, default=None):
     # name
     if isstring(name): name = Identifier(name)
     assert isinstance(name, Identifier)
     # type
-    assert isinstance(type, TypeExp)
+    if type is None: type = VoidType()
+    assert isinstance(type, Type)
 
     assert default == None or isinstance(default, Expression)
+    super(Parameter, self).__init__({"name": name, "type": type, "default": default})
     self.name    = name
     self.type    = type
     self.default = default
@@ -351,7 +353,7 @@ class ManyType(Type):
 
 class ObjectType(Type):
   def __init__(self, class_name):
-    assert isidentifier(clazz)
+    assert isidentifier(class_name), class_name + " is no identifier"
     self.class_name = class_name
   def __repr__(self): return "object " + self.class_name
 
