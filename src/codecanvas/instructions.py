@@ -336,6 +336,7 @@ class Type(Fragment): pass
 
 class NamedType(Type):
   def __init__(self, name):
+    assert isstring(name)
     self.name = name
   def __repr__(self): return "type " + self.name
   

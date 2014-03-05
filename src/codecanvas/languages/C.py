@@ -63,6 +63,9 @@ class Dumper(language.Dumper):
   # Types
   # TODO: reintroduce platform
 
+  def visit_NamedType(self, type):
+    return type.name
+
   def visit_VoidType(self, type):
     return "void"
 
