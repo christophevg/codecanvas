@@ -103,6 +103,12 @@ class Dumper(language.Dumper):
   def visit_Identifier(self, id):
     return id.name
 
+  def visit_Comment(self, comment):
+    if "\n" in comment.comment:
+      return "/* " + comment.comment + " */"
+    else:
+      return "// " + comment.comment
+
   # Loops
   
   def visit_WhileDo(self, loop):

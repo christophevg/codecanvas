@@ -87,6 +87,9 @@ class Visitor(instructions.Visitor):
   @stacked
   def visit_BooleanLiteral(self, code): pass
 
+  @stacked
+  def visit_Comment(self, code): pass
+
 class Dumper(Visitor):
   """
   Base-class for dumpers that simply dump out a CodeCanvas as a string.

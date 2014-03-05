@@ -90,6 +90,14 @@ printf("loop");
               code.BooleanLiteral(False))
     self.assertEqualToSource(self.unit, "some_func(a, b, FALSE)")
 
+  def test_single_line_comment(self):
+    tree = code.Comment("hello world")
+    self.assertEqualToSource(tree, "// hello world")
+
+  def test_multi_line_comment(self):
+    tree = code.Comment("hello\nworld")
+    self.assertEqualToSource(tree, "/* hello\nworld */")
+
 if __name__ == '__main__':
   suite = unittest.TestLoader().loadTestsFromTestCase(TestIntegration)
   unittest.TextTestRunner(verbosity=2).run(suite)
