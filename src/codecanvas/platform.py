@@ -11,14 +11,14 @@ class Platform():
     """
     return NotImplementedError, "type(self, type)"
 
-  def add_handler(self, event, function=None, location=None):
+  def add_handler(self, event, call=None, location=None):
     """
     Used to register platform specific callbacks/handlers. Dispatches to
     other methods based on the required event to be handled.
     """
     return {
       "receive" : self.handle_receive
-    }[event](function, location)
+    }[event](call, location)
 
   def handle_receive(self, function=None, location=None):
     """

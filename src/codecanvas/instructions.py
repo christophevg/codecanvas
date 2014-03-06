@@ -50,30 +50,35 @@ class Function(Identified, Code):
     self.type   = type
     self.params = params
 
+# TODO: this gives issues due to being a Code :-(
 class ParameterList(Fragment):
   def __init__(self, parameters):
     self.parameters = []
     [self.append(parameter) for parameter in parameters]
   def __iter__(self):
     return iter(self.parameters)
+  def __len__(self):
+    return len(self.parameters)
+  def __getitem__(self, key):
+    return self.parameters[key]
   def append(self, parameter):
     assert isinstance(parameter, Parameter)
     self.parameters.append(parameter)
     return self
   def __repr__(self): return "(" + ",".join(self.parameters) + ")"
 
-class Parameter(Fragment):
-  def __init__(self, name, type=None, default=None):
+class Parameter(Identified, Fragment):
+  def __init__(self, id, type=None, default=None):
     # name
-    if isstring(name): name = Identifier(name)
-    assert isinstance(name, Identifier)
+    if isstring(id): id = Identifier(id)
+    assert isinstance(id, Identifier)
     # type
     if type is None: type = VoidType()
     assert isinstance(type, Type)
 
     assert default == None or isinstance(default, Expression)
-    super(Parameter, self).__init__({"name": name, "type": type, "default": default})
-    self.name    = name
+    super(Parameter, self).__init__({"id": id, "type": type, "default": default})
+    self.id      = id
     self.type    = type
     self.default = default
   
@@ -135,13 +140,14 @@ class Comment(ImmutUnOp):
     super(Comment, self).__init__({"comment": comment})
     self.comment = comment
   def __str__(self):
-    return self.comment
+    return "# " + self.comment
 
 @novisiting
 class BinOp(Statement):
   def __init__(self, operand, expression):
-    assert isinstance(operand, VariableExp)
+    assert isinstance(operand, Variable)
     assert isinstance(expression, Expression)
+    Statement.__init__(self, {"operand": operand, "expression": expression})
     self.operand    = operand
     self.expression = expression
   def ends(self):
@@ -350,6 +356,13 @@ class ManyType(Type):
     assert isinstance(type, Type)
     self.subtype = type
   def __repr__(self): return "many " + self.subtype
+
+class TupleType(Type):
+  def __init__(self, types):
+    for type in types:
+      assert isinstance(type, Type)
+    self.types = types
+  def __repr__(self): return "tuple " + ",".join(self.types)
 
 class ObjectType(Type):
   def __init__(self, class_name):
