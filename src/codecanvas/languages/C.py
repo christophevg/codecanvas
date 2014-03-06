@@ -76,7 +76,9 @@ class Dumper(language.Dumper):
     return "printf(" + printed.string.accept(self) + ");"
   
   def visit_Import(self, importer):
-    return "#import " + importer.imported
+    file = importer.imported
+    if not file[0:1] == "<": file = '"' + file + '.h"'
+    return "#import " + file
 
   # Types
 
