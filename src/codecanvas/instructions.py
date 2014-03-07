@@ -88,11 +88,17 @@ class Statement(Code):
   def __init__(self, data):
     super(Statement, self).__init__(data)
 
+class EmptyStatement(Statement):
+  def __init__(self):
+    super(EmptyStatement, self).__init__({})
+
 class IfStatement(WithoutChildModification, Statement):
   def __init__(self, expression, true_clause, false_clause=None):
     assert isinstance(expression, Expression)
     assert isinstance(true_clause, Statement)
-    assert false_clause == None or isinstance(false_clause, Statement)
+    if false_clause is None: false_clause = EmptyStatement()
+    assert isinstance(false_clause, Statement)
+    super(IfStatement, self).__init__()
     self.expression   = expression
     self.true_clause  = true_clause
     self.false_clause = false_clause
@@ -234,9 +240,9 @@ class SimpleVariable(Identified, Variable):
 class Object(SimpleVariable): pass
 
 class ObjectProperty(Object):
-  def __init__(self, obj, property):
-    assert isinstance(obj, ObjectExp)
-    assert isinstance(property, Identifier)
+  def __init__(self, obj, prop):
+    assert isinstance(obj, Object)
+    assert isinstance(prop, Identifier)
     self.obj  = obj
     self.prop = prop
 
