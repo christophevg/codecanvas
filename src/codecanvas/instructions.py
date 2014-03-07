@@ -39,7 +39,8 @@ class Function(Identified, Code):
 
     # type
     if type is None: type = VoidType()
-    assert isinstance(type, Type), "Return-type should be a Type"
+    assert isinstance(type, Type), "Return-type should be a Type, not " + \
+                                   type.__class__.__name__
 
     # params
     if isinstance(params, list): params = ParameterList(params)
