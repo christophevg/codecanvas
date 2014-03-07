@@ -66,12 +66,6 @@ class Dumper(language.Dumper):
            "\n".join([child.accept(self) for child in function]) + \
            "\n}"
 
-  def visit_ParameterList(self, params):
-    return "(" + \
-           (", ".join([p.accept(self) for p in params]) \
-             if len(params) > 0 else "void") + \
-           ")"
-
   def visit_Parameter(self, param):
     return param.type.accept(self) + " " + param.name.accept(self)
 

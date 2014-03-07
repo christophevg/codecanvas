@@ -39,10 +39,6 @@ class Visitor(instructions.Visitor):
     for child in code: child.accept(self)
 
   @stacked
-  def visit_ParameterList(self, code):
-    for child in code: child.accept(self)
-
-  @stacked
   def visit_Print(self, code):
     for child in code: child.accept(self)
 
