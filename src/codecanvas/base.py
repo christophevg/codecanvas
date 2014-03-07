@@ -160,8 +160,17 @@ class Code(object):
     except AttributeError: pass
 
     # try _specific_class_implementation
-    try: return getattr(visitor, "visit_" + self.__class__.__name__)(self)
-    except AttributeError: pass
+    name = "visit_" + self.__class__.__name__
+    try: return getattr(visitor, name)(self)
+    except AttributeError, e:
+      expected = "'{0}' object has no attribute '{1}'".format(
+                   visitor.__class__.__name__, name)
+      if str(e) != expected:
+        # Whoops some other AttributeError ... while calling
+        raise
+      else:
+        # no handler, that's ok
+        pass
     return ""
 
 # wrapper for multiple Codes, offering the same interface, dispatching to list
