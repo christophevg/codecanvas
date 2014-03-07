@@ -43,30 +43,12 @@ class Function(Identified, Code):
                                    type.__class__.__name__
 
     # params
-    if isinstance(params, list): params = ParameterList(params)
-    assert isinstance(params, ParameterList)
+    if isinstance(params, list): params = TypedList(Parameter, params)
 
     super(Function, self).__init__({"id":name, "type":type, "params": params})
     self.id     = name
     self.type   = type
     self.params = params
-
-# TODO: this gives issues due to being a Code :-(
-class ParameterList(Fragment):
-  def __init__(self, parameters):
-    self.parameters = []
-    [self.append(parameter) for parameter in parameters]
-  def __iter__(self):
-    return iter(self.parameters)
-  def __len__(self):
-    return len(self.parameters)
-  def __getitem__(self, key):
-    return self.parameters[key]
-  def append(self, parameter):
-    assert isinstance(parameter, Parameter)
-    self.parameters.append(parameter)
-    return self
-  def __repr__(self): return "(" + ",".join(self.parameters) + ")"
 
 class Parameter(Identified, Fragment):
   def __init__(self, id, type=None, default=None):

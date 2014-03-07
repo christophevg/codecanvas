@@ -73,7 +73,7 @@ class TestExamples(unittest.TestCase):
 Module hello [hello]
   Section def [def]
   Section dec [dec]
-    Function {'params': (), 'type': void, 'id': main}
+    Function {'params': [], 'type': void, 'id': main}
       Print {'args': (), 'string': "Hello World\\n"}""")
 
     # Generate the code of the main function

@@ -60,14 +60,16 @@ class Dumper(language.Dumper):
 
   def visit_Function(self, function):
     return function.type.accept(self) + " " + function.name + \
-           function.params.accept(self) + " " +  "{\n" + \
+           "(" + (",".join([param.accept(self) for param in function.params]) \
+                   if len(function.params) else "void") + ") " + \
+           "{\n" + \
            "\n".join([child.accept(self) for child in function]) + \
            "\n}"
 
   def visit_ParameterList(self, params):
     return "(" + \
-           (", ".join([p.accept(self) for p in params.parameters]) \
-             if len(params.parameters) > 0 else "void") + \
+           (", ".join([p.accept(self) for p in params]) \
+             if len(params) > 0 else "void") + \
            ")"
 
   def visit_Parameter(self, param):
