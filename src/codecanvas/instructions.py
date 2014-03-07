@@ -98,7 +98,7 @@ class IfStatement(WithoutChildModification, Statement):
     assert isinstance(true_clause, Statement)
     if false_clause is None: false_clause = EmptyStatement()
     assert isinstance(false_clause, Statement)
-    super(IfStatement, self).__init__()
+    super(IfStatement, self).__init__({"expression": expression})
     self.expression   = expression
     self.true_clause  = true_clause
     self.false_clause = false_clause
