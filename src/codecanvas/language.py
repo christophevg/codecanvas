@@ -86,6 +86,101 @@ class Visitor(instructions.Visitor):
   @stacked
   def visit_Comment(self, code): pass
 
+  @stacked
+  def visit_IfStatement(self, cond):
+    for stmt in cond.true_clause: stmt.accept(self)
+    for stmt in cond.false_clause: stmt.accept(self)
+
+  @stacked
+  def visit_CaseStatement(self, case):
+    for stmt in case.cases: stmt.accept(self)
+    for consequence in case.consequences:
+      for stmt in consequence:
+        stmt.accept(self)
+
+  @stacked
+  def visit_Assign(self, stmt):
+    stmt.operand.accept(self)
+    stmt.expression.accept(self)
+
+  @stacked
+  def visit_Add(self, stmt):
+    stmt.operand.accept(self)
+    stmt.expression.accept(self)
+
+  @stacked
+  def visit_Dec(self, stmt):
+    stmt.operand.accept(self)
+    stmt.expression.accept(self)
+
+  @stacked
+  def visit_MethodCall(self, stmt):
+    stmt.obj.accept(self)
+    stmt.method.accept(self)
+    for arg in stmt.arguments:
+      arg.accept(self)
+
+  def visit_EmptyStatement(self, stmt): pass
+
+  def visit_Object(self, obj): pass
+
+  def visit_Identifier(self, id): pass
+
+  @stacked
+  def visit_ListLiteral(self, literal):
+    for child in literal: child.accept(self)
+
+  @stacked
+  def visit_Inc(self, stmt):
+    stmt.operand.accept(self)
+
+  @stacked
+  def visit_Dec(self, stmt):
+    stmt.operand.accept(self)
+
+  @stacked
+  def visit_ManyType(self, type):
+    type.subtype.accept(self)
+
+  def visit_AtomLiteral(self, literal): pass
+
+  def visit_IntegerLiteral(self, stmt): pass
+
+  @stacked
+  def visit_ObjectProperty(self, prop):
+    prop.obj.accept(self)
+    prop.prop.accept(self)
+
+  @stacked
+  def visit_Plus(self, stmt):
+    stmt.left.accept(self)
+    stmt.right.accept(self)
+
+  @stacked
+  def visit_Minus(self, stmt):
+    stmt.left.accept(self)
+    stmt.right.accept(self)
+
+  @stacked
+  def visit_Mult(self, stmt):
+    stmt.left.accept(self)
+    stmt.right.accept(self)
+
+  @stacked
+  def visit_Div(self, stmt):
+    stmt.left.accept(self)
+    stmt.right.accept(self)
+
+  @stacked
+  def visit_Match(self, match):
+    match.comp.accept(self)
+    if not match.expression is None: match.expression.accept(self)
+
+  def visit_Comparator(self, comp): pass
+  def visit_Anything(self, comp): pass
+
+  def visit_Return(self, op): pass
+
 class Dumper(Visitor):
   """
   Base-class for dumpers that simply dump out a CodeCanvas as a string.

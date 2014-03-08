@@ -67,7 +67,7 @@ class Dumper(language.Dumper):
            "\n}"
 
   def visit_Parameter(self, param):
-    return param.type.accept(self) + " " + param.name.accept(self)
+    return param.type.accept(self) + " " + param.id.accept(self)
 
   # Statements
 
@@ -78,6 +78,61 @@ class Dumper(language.Dumper):
     file = importer.imported
     if not file[0:1] == "<": file = '"' + file + '.h"'
     return "#import " + file
+
+  def visit_IfStatement(self, cond):
+    return "if(" + cond.expression.accept(self) + ")" + \
+           "{" + "\n".join([stmt.accept(self) for stmt in cond.true_clause]) + "}" + \
+           (("else {" + "\n".join([stmt.accept(self) \
+                          for stmt in cond.false_clause]) + \
+                  "}") if len(cond.false_clause) > 0 else "")
+
+  def visit_CaseStatement(self, case_stmt):
+    code = ""
+    for case, consequence in zip(case_stmt.cases, case_stmt.consequences):
+      code += "case(" + case_stmt.expression.accept(self) + "->" + case.accept(self) + ")" + \
+                "{" + \
+                  "\n".join([stmt.accept(self) for stmt in consequence]) + \
+                "}"
+    return code
+
+  def visit_EmptyStatement(self, stmt):
+    return ""
+
+  def visit_Assign(self, stmt):
+    return stmt.operand.accept(self) + " = " + stmt.expression.accept(self) + ";"
+
+  def visit_Add(self, stmt):
+    return stmt.operand.accept(self) + " += " + stmt.expression.accept(self) + ";"
+
+  def visit_Sub(self, stmt):
+    return stmt.operand.accept(self) + " -= " + stmt.expression.accept(self) + ";"
+
+  def visit_MethodCall(self, call):
+    # TODO: change this into actual C code !!!
+    return call.obj.accept(self) + "->" + call.method.name + "(" + \
+           ",".join([arg.accept(self) for arg in call.arguments]) +  ")"
+
+  def visit_Object(self, obj):
+    return obj.name
+
+  def visit_Inc(self, stmt):
+    return stmt.operand.accept(self) + "++;"
+
+  def visit_Dec(self, stmt):
+    return stmt.operand.accept(self) + "--;"
+
+
+  def visit_Plus(self, stmt):
+    return "(" + stmt.left.accept(self) + " + " + stmt.right.accept(self) + ")"
+
+  def visit_Minus(self, stmt):
+    return "(" + stmt.left.accept(self) + " - " + stmt.right.accept(self) + ")"
+
+  def visit_Mult(self, stmt):
+    return "(" + stmt.left.accept(self) + " * " + stmt.right.accept(self) + ")"
+
+  def visit_Div(self, stmt):
+    return "(" + stmt.left.accept(self) + " / " + stmt.right.accept(self) + ")"
 
   # Types
 
@@ -105,6 +160,13 @@ class Dumper(language.Dumper):
   def visit_ManyType(self, type):
     return type.subtype.accept(self) + "*"
 
+  def visit_ObjectType(self, type):
+    return type.name
+
+  def visit_TupleType(self, type):
+    # TODO: implement this in C !!!
+    return "tuple_" + "_".join(item.type.accept(self) for item in type.types)
+
   def visit_StructuredType(self, struct):
     return "typedef struct {\n" + \
            "\n".join([prop.accept(self) for prop in struct]) + \
@@ -114,6 +176,12 @@ class Dumper(language.Dumper):
     return prop.type.accept(self) + " " + prop.name.accept(self) + ";"
 
   # Fragments
+
+  def visit_IntegerLiteral(self, literal):
+    return str(literal.value)
+
+  def visit_FloatLiteral(self, literal):
+    return str(literal.value)
   
   def visit_StringLiteral(self, string):
     return '"' + string.data.replace("\n", '\\n') + '"'
@@ -123,6 +191,18 @@ class Dumper(language.Dumper):
 
   def visit_Identifier(self, id):
     return id.name
+
+  def visit_ListLiteral(self, literal):
+    # TODO: implement this in C !!!
+    return ",".join([item.accept(self) for item in literal.children])
+
+  def visit_AtomLiteral(self, literal):
+    # TODO: implement this in C !!!
+    return "atom_" + literal.name
+
+  def visit_ObjectProperty(self, prop):
+    # TODO: implement this in C !!!
+    return prop.obj.accept(self) + "->" + prop.prop.accept(self)
 
   def visit_Comment(self, comment):
     if "\n" in comment.comment:
@@ -149,6 +229,58 @@ class Dumper(language.Dumper):
 
   def visit_SimpleVariable(self, var):
     return var.id.accept(self)
+
+  # Matching
+  
+  def visit_Match(self, match):
+    # TODO
+    return "match(" + match.comp.accept(self) + \
+           (("," + match.expression.accept(self)) \
+             if not match.expression is None else "") + \
+           ")"
+
+  def visit_Comparator(self, comp):
+    # TODO
+    return comp.operator
+
+  def visit_Anything(self, comp):
+    # TODO
+    return "*"
+
+  # Expressions
+  
+  def visit_And(self, op):
+    return "(" + op.left.accept(self) + " && " + op.right.accept(self) + ")"
+
+  def visit_Or(self, op):
+    return "(" + op.left.accept(self) + " || " + op.right.accept(self) + ")"
+
+  def visit_Equals(self, op):
+    return "(" + op.left.accept(self) + " == " + op.right.accept(self) + ")"
+    
+  def visit_NotEquals(self, op):
+    return "(" + op.left.accept(self) + " != " + op.right.accept(self) + ")"
+    
+  def visit_LT(self, op):
+    return "(" + op.left.accept(self) + " < " + op.right.accept(self) + ")"
+    
+  def visit_LTEQ(self, op):
+    return "(" + op.left.accept(self) + " <= " + op.right.accept(self) + ")"
+
+  def visit_GT(self, op):
+    return "(" + op.left.accept(self) + " > " + op.right.accept(self) + ")"
+
+  def visit_GTEQ(self, op):
+    return "(" + op.left.accept(self) + " >= " + op.right.accept(self) + ")"
+
+  def visit_Modulo(self, op):
+    return "(" + op.left.accept(self) + " % " + op.right.accept(self) + ")"
+
+  def visit_Return(self, op):
+    return "return;"
+
+  def visit_Not(self, op):
+    return "!" + op.operand.accept(self)
 
   # general purpose child visiting
   def visit_children(self, parent, joiner="\n"):

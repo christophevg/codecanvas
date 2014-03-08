@@ -76,11 +76,10 @@ class EmptyStatement(Statement):
     super(EmptyStatement, self).__init__({})
 
 class IfStatement(WithoutChildModification, Statement):
-  def __init__(self, expression, true_clause, false_clause=None):
+  def __init__(self, expression, true_clause, false_clause=[]):
     assert isinstance(expression, Expression)
-    assert isinstance(true_clause, Statement)
-    if false_clause is None: false_clause = EmptyStatement()
-    assert isinstance(false_clause, Statement)
+    assert isinstance(true_clause, list)
+    assert isinstance(false_clause, list)
     super(IfStatement, self).__init__({"expression": expression})
     self.expression   = expression
     self.true_clause  = true_clause
@@ -88,10 +87,23 @@ class IfStatement(WithoutChildModification, Statement):
   def _children(self): return [self.true_clause, self.false_clause]
   children = property(_children)
 
+class CaseStatement(WithoutChildModification, Statement):
+  def __init__(self, expression, cases, consequences):
+    assert isinstance(expression, Expression)
+    assert isinstance(cases, list)
+    assert isinstance(consequences, list)
+    super(CaseStatement, self).__init__({"expression": expression})
+    self.expression   = expression
+    self.cases        = cases
+    self.consequences = consequences
+  def _children(self): return [self.cases, self.consequences]
+  children = property(_children)
+
 @novisiting
 class MutUnOp(WithoutChildren, Statement):
   def __init__(self, operand):
-    assert isinstance(operand, VariableExp)
+    assert isinstance(operand, Variable)
+    super(MutUnOp, self).__init__({"op": operand})
     self.operand = operand
   def ends(self):
     return True
@@ -149,6 +161,7 @@ class Sub(BinOp): pass
 class Return(Statement):
   def __init__(self, expression=None):
     assert expression == None or isinstance(expression, Expression)
+    super(Return, self).__init__({})
     self.expression = expression
   def ends(self):
     return True
@@ -199,18 +212,6 @@ class Property(WithoutChildModification, Code):
 class Expression(Code): pass
 
 @novisiting
-class ExpressionList(Fragment):
-  def __init__(self, expressions):
-    self.expressions = []
-    [self.append(expression) for expression in expressions]
-  def __iter__(self):
-    return iter(self.expressions)
-  def append(self, expression):
-    assert isinstance(expression, Expression)
-    self.expressions.append(expression)
-    return self
-
-@novisiting
 class Variable(Expression): pass
 
 class SimpleVariable(Identified, Variable):
@@ -220,12 +221,18 @@ class SimpleVariable(Identified, Variable):
     super(SimpleVariable, self).__init__({"id": id})
     self.id = id
 
-class Object(SimpleVariable): pass
+class Object(Identified, Variable):
+  def __init__(self, id):
+    if isstring(id): id = Identifier(id)
+    assert isinstance(id, Identifier)
+    super(Object, self).__init__({"id": id})
+    self.id = id
 
-class ObjectProperty(Object):
+class ObjectProperty(Variable):
   def __init__(self, obj, prop):
     assert isinstance(obj, Object)
     assert isinstance(prop, Identifier)
+    super(ObjectProperty, self).__init__({"obj" : obj, "prop": prop})
     self.obj  = obj
     self.prop = prop
 
@@ -242,6 +249,7 @@ class BinOp(Expression):
   def __init__(self, left, right):
     assert isinstance(left, Expression)
     assert isinstance(right, Expression)
+    super(BinOp, self).__init__({"left": left, "right": right})
     self.left  = left
     self.right = right
 
@@ -259,19 +267,28 @@ class Mult(BinOp): pass
 class Div(BinOp): pass
 class Modulo(BinOp): pass
 
-class FunctionCall(Expression):
-  def __init__(self, function):
-    if isstring(function): function = Identifier(function)
-    assert isinstance(function, Identifier)
-    super(FunctionCall, self).__init__({"function": function})
-    self.function  = function
+class Call(Expression):
+  def __init__(self, info, arguments=[]):
+    info["arguments"] = len(arguments)
+    super(Call, self).__init__(info)
+    self.arguments = TypedList(Expression, arguments)
   def ends(self):
     return True
 
-class MethodCall(Expression):
-  def __init__(self, obj, method):
-    assert isinstance(obj, ObjectExp)
+class FunctionCall(Call):
+  def __init__(self, function, arguments=[]):
+    if isstring(function): function = Identifier(function)
+    assert isinstance(function, Identifier)
+    super(FunctionCall, self).__init__({"function": function}, arguments)
+    self.function  = function
+
+class MethodCall(Call):
+  def __init__(self, obj, method, arguments=[]):
+    assert isinstance(obj, Object) or isinstance(obj, ObjectProperty), \
+           "Expected Object(Property), but got " + obj.__class__.__name__
+    if isstring(method): method = Identifier(method)
     assert isinstance(method, Identifier)
+    super(MethodCall, self).__init__({"obj": obj, "method": method}, arguments)
     self.obj       = obj
     self.method    = method
 
@@ -310,20 +327,22 @@ class FloatLiteral(Literal):
 
 class ListLiteral(Literal):
   def __init__(self):
-    super(ListLiteral, super).__init__({})
+    super(ListLiteral, self).__init__({})
   def __repr__(self):
     return "[]"
 
 class TupleLiteral(Literal):
   def __init__(self, expressions=[]):
-    self.expressions = ExpressionList(expressions)
+    self.expressions = TypedList(Expression, expressions)
   def __repr__(self):
     return "(" + ",".join([expr for expr in self.expressions]) + ")"
 
-class AtomLiteral(Literal):
-  def __init__(self, name):
-    assert isinstance(name, Identifier)
-    self.name = name
+class AtomLiteral(Identified, Literal):
+  def __init__(self, id):
+    if isstring(id): id = Identifier(id)
+    assert isinstance(id, Identifier)
+    super(AtomLiteral, self).__init__({"name": id.name})
+    self.id = id
   def __repr__(self):
     return "atom " + self.name
 
@@ -342,9 +361,11 @@ class VoidType(Type):
 
 class ManyType(Type):
   def __init__(self, type):
-    assert isinstance(type, Type)
+    assert isinstance(type, Type), \
+           "Expected Type but got " + type.__class__.__name__
+    super(ManyType, self).__init__({})
     self.subtype = type
-  def __repr__(self): return "many " + self.subtype
+  def __repr__(self): return "many " + str(self.subtype)
 
 class TupleType(Type):
   def __init__(self, types):
@@ -373,6 +394,27 @@ class FloatType(Type):
   
 class LongType(Type):
   def __repr__(self): return "long"
+
+# Matching
+
+class Match(Expression):
+  def __init__(self, comp, expression=None):
+    assert isinstance(comp, Comparator), \
+           "Expected Comparator but got " + comp.__class__.__module__ + ":" + comp.__class__.__name__
+    assert expression == None or isinstance(expression, Expression)
+    super(Match, self).__init__({"comp": comp})
+    self.comp       = comp
+    self.expression = expression
+
+class Comparator(Fragment):
+  def __init__(self, operator):
+    assert operator in [ "<", "<=", ">", ">=", "==", "!=", "!", "*" ]
+    super(Comparator, self).__init__({"operator": operator})
+    self.operator = operator
+
+class Anything(Comparator):
+  def __init__(self):
+    super(Anything, self).__init__("*")
 
 # A visitor for instructions = Code or Fragment
 
