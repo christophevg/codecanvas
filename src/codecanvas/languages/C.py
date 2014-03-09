@@ -165,7 +165,7 @@ class Dumper(language.Dumper):
 
   def visit_TupleType(self, type):
     # TODO: implement this in C !!!
-    return "tuple_" + "_".join(item.type.accept(self) for item in type.types)
+    return "tuple_" + "_".join(item.accept(self) for item in type.types)
 
   def visit_StructuredType(self, struct):
     return "typedef struct {\n" + \
