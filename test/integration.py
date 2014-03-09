@@ -4,6 +4,8 @@
 
 import unittest
 
+from difflib import *
+
 from codecanvas.structure import Unit, Module, Section
 
 import codecanvas.instructions as code
@@ -18,7 +20,9 @@ class TestIntegration(unittest.TestCase):
   def assertEqualToSource(self, tree, source):
     result   = C.Emitter().emit(tree)
     expected = source.lstrip()
-    if result != expected: print result
+    if result != expected:
+      for line in unified_diff(result.split("\n"), expected.split("\n")):
+        print(line)
     self.assertEqual(result, expected)
 
   def test_types(self):
@@ -97,6 +101,25 @@ printf("loop");
   def test_multi_line_comment(self):
     tree = code.Comment("hello\nworld")
     self.assertEqualToSource(tree, "/* hello\nworld */")
+
+  def test_many_type(self):
+    tree = code.ManyType(code.ByteType())
+    self.assertEqualToSource(tree, "char*")
+
+  def test_property(self):
+    tree = code.Property("test", code.ManyType(code.ByteType()))
+    self.assertEqualToSource(tree, "char* test;")
+
+  def test_struct_with_property(self):
+    tree = code.StructuredType("my_struct").contains(
+      code.Property("test1", code.ManyType(code.ByteType())),
+      code.Property("test2", code.ManyType(code.IntegerType()))
+    )
+    self.assertEqualToSource(tree, """
+typedef struct {
+char* test1;
+int* test2;
+} my_struct_t;""")
 
 if __name__ == '__main__':
   suite = unittest.TestLoader().loadTestsFromTestCase(TestIntegration)
