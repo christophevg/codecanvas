@@ -14,15 +14,7 @@ class Identified(object):
   def get_name(self): return self.id.name
   name = property(get_name)
 
-# Fragments - are instructions that aren't Codes by itself, but can be visited
-
-class Fragment(Code):
-  def accept(self, visitor):
-    try: return getattr(visitor, "visit_" + self.__class__.__name__)(self)
-    except AttributeError: pass
-    return ""
-
-class Identifier(Fragment):
+class Identifier(Code):
   def __init__(self, name):
     assert isidentifier(name), "Not an Identifier: " + name
     self.name = name
@@ -50,7 +42,7 @@ class Function(Identified, Code):
     self.type   = type
     self.params = params
 
-class Parameter(Identified, Fragment):
+class Parameter(Identified, Code):
   def __init__(self, id, type=None, default=None):
     # name
     if isstring(id): id = Identifier(id)
@@ -348,7 +340,7 @@ class AtomLiteral(Identified, Literal):
 
 # Types
 
-class Type(Fragment): pass
+class Type(Code): pass
 
 class NamedType(Type):
   def __init__(self, name):
@@ -375,10 +367,10 @@ class TupleType(Type):
   def __repr__(self): return "tuple " + ",".join(self.types)
 
 class ObjectType(Type):
-  def __init__(self, class_name):
-    assert isidentifier(class_name), class_name + " is no identifier"
-    self.class_name = class_name
-  def __repr__(self): return "object " + self.class_name
+  def __init__(self, name):
+    assert isidentifier(name), name + " is no identifier"
+    self.name = name
+  def __repr__(self): return "object " + self.name
 
 class ByteType(Type):
   def __repr__(self): return "byte"
@@ -406,7 +398,7 @@ class Match(Expression):
     self.comp       = comp
     self.expression = expression
 
-class Comparator(Fragment):
+class Comparator(Code):
   def __init__(self, operator):
     assert operator in [ "<", "<=", ">", ">=", "==", "!=", "!", "*" ]
     super(Comparator, self).__init__({"operator": operator})
@@ -416,7 +408,7 @@ class Anything(Comparator):
   def __init__(self):
     super(Anything, self).__init__("*")
 
-# A visitor for instructions = Code or Fragment
+# A visitor for instructions = Code or Code
 
-@visits([Fragment, Code])
+@visits([Code])
 class Visitor(): pass
