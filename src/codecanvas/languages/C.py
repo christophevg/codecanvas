@@ -4,8 +4,9 @@
 
 from util.visitor import stacked
 
-from codecanvas import language
-from codecanvas import instructions as code
+import codecanvas.language     as language
+import codecanvas.instructions as code
+import codecanvas.structure    as structure
 
 from codecanvas.platform import Platform
 
@@ -33,11 +34,36 @@ class Extender(language.Visitor):
 
   @stacked
   def visit_Print(self, printer):
+    """
+    When using print(f) we need to include <stdio.h> once per module.
+    """
     module = self.stack[1]
     if module.select("dec", "import_stdio") == None:
       module.select("dec").append(code.Import("<stdio.h>")) \
                           .stick_top() \
-                          .tag("import_stdio") \
+                          .tag("import_stdio")
+
+  tuple_index = 0
+  def visit_TupleType(self, tuple):
+    """
+    Tuples are structured types.
+    """
+    # TODO: create nicer names
+    name = "tuple_" + str(Extender.tuple_index)
+    Extender.tuple_index += 1
+    struct = code.StructuredType(name)
+    for index, type in enumerate(tuple.types):
+      struct.append(code.Property("elem_"+str(index), type))
+
+    unit = self.stack[0]
+    if unit.find("tuples") == None:
+      unit.append(structure.Module("tuples"))
+
+    unit.find("tuples").select("def").append(struct)
+
+    # replace tuple type by a NamedType
+    # TODO: we assume every parent has a .type property that can be replaced!!!
+    self.stack[-1].type = code.NamedType(name)
 
 class Generic(Platform):
   def type(self, type):
@@ -158,14 +184,14 @@ class Dumper(language.Dumper):
     return self.platform.type(type)
 
   def visit_ManyType(self, type):
-    return type.subtype.accept(self) + "*"
+    return type.type.accept(self) + "*"
 
   def visit_ObjectType(self, type):
     return type.name
 
   def visit_TupleType(self, type):
-    # TODO: implement this in C !!!
-    return "tuple_" + "_".join(item.accept(self) for item in type.types)
+    raise NotImplementedError, "Tuples aren't supported in C. " + \
+                               "Extender should have replaced this."
 
   def visit_StructuredType(self, struct):
     return "typedef struct {\n" + \

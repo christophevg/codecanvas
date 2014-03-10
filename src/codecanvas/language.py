@@ -54,11 +54,17 @@ class Visitor(instructions.Visitor):
   def visit_LongType(self, type): pass
   
   @stacked
+  def visit_TupleType(self, code): pass
+
+  @stacked
   def visit_StructuredType(self, code):
     for child in code: child.accept(self)
 
   @stacked
-  def visit_Property(self, code): pass
+  def visit_Property(self, code):
+    code.type.accept(self)
+  
+  def visit_NamedType(self, code): pass
   
   # loops
   
@@ -140,7 +146,7 @@ class Visitor(instructions.Visitor):
 
   @stacked
   def visit_ManyType(self, type):
-    type.subtype.accept(self)
+    type.type.accept(self)
 
   def visit_AtomLiteral(self, literal): pass
 

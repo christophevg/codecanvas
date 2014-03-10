@@ -356,8 +356,8 @@ class ManyType(Type):
     assert isinstance(type, Type), \
            "Expected Type but got " + type.__class__.__name__
     super(ManyType, self).__init__({})
-    self.subtype = type
-  def __repr__(self): return "many " + str(self.subtype)
+    self.type = type
+  def __repr__(self): return "many " + str(self.type)
 
 class TupleType(Type):
   def __init__(self, types):
