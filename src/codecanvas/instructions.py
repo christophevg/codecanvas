@@ -22,12 +22,31 @@ class Identifier(Code):
 
 # Declarations
 
+class Constant(Identified, Code):
+  def __init__(self, id, value, type=None):
+    # name
+    if isstring(id): id = Identifier(id)
+    assert isinstance(id, Identifier), "Name should be an identifier, not" + \
+                                       id.__class__.__name__
+
+    # TODO: add some value-checking ? (to avoid havoc)
+
+    if type is None: type = VoidType()
+    assert isinstance(type, Type), "Type should be a Type, not " + \
+                                   type.__class__.__name__
+
+    super(Constant, self).__init__({"id": id, "value": value, "type": type})
+    self.id    = id
+    self.value = value
+    self.type  = type
+
 class Function(Identified, Code):
   def __init__(self, name, type=None, params=[]):
     # name
     assert not name is None, "A function needs at least a name." # TODO: extend
     if isstring(name): name = Identifier(name)
-    assert isinstance(name, Identifier), "A name should be an identifier"
+    assert isinstance(name, Identifier), "Name should be an identifier, not" + \
+                                         name.__class__.__name__
 
     # type
     if type is None: type = VoidType()

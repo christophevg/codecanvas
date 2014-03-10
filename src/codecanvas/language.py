@@ -30,6 +30,8 @@ class Visitor(instructions.Visitor):
   def visit_Module(self, code):
     for child in code: child.accept(self)
 
+  def visit_Constant(self, code): pass
+
   @stacked
   def visit_Function(self, code):
     for child in code: child.accept(self)

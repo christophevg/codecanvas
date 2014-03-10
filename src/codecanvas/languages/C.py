@@ -84,6 +84,9 @@ class Dumper(language.Dumper):
     assert isinstance(platform, Platform)
     self.platform = platform
 
+  def visit_Constant(self, constant):
+    return "#define " + constant.id.accept(self) + " " + constant.value.accept(self)
+
   def visit_Function(self, function):
     return function.type.accept(self) + " " + function.name + \
            "(" + (",".join([param.accept(self) for param in function.params]) \

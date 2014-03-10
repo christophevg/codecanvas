@@ -121,6 +121,10 @@ char* test1;
 int* test2;
 } my_struct_t;""")
 
+  def test_constant(self):
+    tree = code.Constant("something", "something_else")
+    self.assertEqualToSource(tree, "#define something something_else")
+
 if __name__ == '__main__':
   suite = unittest.TestLoader().loadTestsFromTestCase(TestIntegration)
   unittest.TextTestRunner(verbosity=2).run(suite)
