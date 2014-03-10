@@ -23,11 +23,11 @@ class Emitter(object):
 
   def emit(self, code):
     # two phases, two visitations: first to extend the code, next to dump it
-    code.accept(Extender())
+    code.accept(Transfomer())
     if self.output: code.accept(Builder(self.output, platform=self.platform))
     else: return code.accept(Dumper(platform=self.platform))
 
-class Extender(language.Visitor):
+class Transfomer(language.Visitor):
   """
   Visitor for CodeCanvas-based ASTs to add code automagically.
   """
@@ -49,8 +49,8 @@ class Extender(language.Visitor):
     Tuples are structured types.
     """
     # TODO: create nicer names
-    name = "tuple_" + str(Extender.tuple_index)
-    Extender.tuple_index += 1
+    name = "tuple_" + str(Transfomer.tuple_index)
+    Transfomer.tuple_index += 1
     struct = code.StructuredType(name)
     for index, type in enumerate(tuple.types):
       struct.append(code.Property("elem_"+str(index), type))
@@ -191,7 +191,7 @@ class Dumper(language.Dumper):
 
   def visit_TupleType(self, type):
     raise NotImplementedError, "Tuples aren't supported in C. " + \
-                               "Extender should have replaced this."
+                               "Transfomer should have replaced this."
 
   def visit_StructuredType(self, struct):
     return "typedef struct {\n" + \
