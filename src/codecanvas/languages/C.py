@@ -22,14 +22,16 @@ class Emitter(object):
     return self
 
   def emit(self, code):
-    # two phases, two visitations: first to extend the code, next to dump it
+    # two phases, two visitations: first to transform the code according to
+    # platform and language "limitations", ...
     code.accept(Transfomer())
+    # next to dump it to files
     if self.output: code.accept(Builder(self.output, platform=self.platform))
-    else: return code.accept(Dumper(platform=self.platform))
+    else:           return code.accept(Dumper(platform=self.platform))
 
 class Transfomer(language.Visitor):
   """
-  Visitor for CodeCanvas-based ASTs to add code automagically.
+  Visitor for CodeCanvas-based ASTs to add/remove code automagically.
   """
 
   @stacked
