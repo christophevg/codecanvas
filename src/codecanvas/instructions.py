@@ -30,6 +30,7 @@ class Constant(Identified, Code):
                                        id.__class__.__name__
 
     # TODO: add some value-checking ? (to avoid havoc)
+    if isstring(value): value = Identifier(value)
 
     if type is None: type = VoidType()
     assert isinstance(type, Type), "Type should be a Type, not " + \
