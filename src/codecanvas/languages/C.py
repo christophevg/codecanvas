@@ -24,12 +24,12 @@ class Emitter(object):
   def emit(self, code):
     # two phases, two visitations: first to transform the code according to
     # platform and language "limitations", ...
-    code.accept(Transfomer())
+    code.accept(Transformer())
     # next to dump it to files
     if self.output: code.accept(Builder(self.output, platform=self.platform))
     else:           return code.accept(Dumper(platform=self.platform))
 
-class Transfomer(language.Visitor):
+class Transformer(language.Visitor):
   """
   Visitor for CodeCanvas-based ASTs to add/remove code automagically.
   """
@@ -51,8 +51,8 @@ class Transfomer(language.Visitor):
     Tuples are structured types.
     """
     # TODO: create nicer names
-    name = "tuple_" + str(Transfomer.tuple_index)
-    Transfomer.tuple_index += 1
+    name = "tuple_" + str(Transformer.tuple_index)
+    Transformer.tuple_index += 1
     struct = code.StructuredType(name)
     for index, type in enumerate(tuple.types):
       struct.append(code.Property("elem_"+str(index), type))
