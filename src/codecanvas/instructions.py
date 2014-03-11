@@ -223,11 +223,13 @@ class Expression(Code): pass
 class Variable(Expression): pass
 
 class SimpleVariable(Identified, Variable):
-  def __init__(self, id):
+  # TODO: info here is a small hack to allow semantic typing information :-(
+  def __init__(self, id, info=None):
     if isstring(id): id = Identifier(id)
     assert isinstance(id, Identifier)
     super(SimpleVariable, self).__init__({"id": id})
-    self.id = id
+    self.id   = id
+    self.info = info
 
 class Object(Identified, Variable):
   def __init__(self, id, type):
