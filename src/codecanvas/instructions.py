@@ -230,19 +230,23 @@ class SimpleVariable(Identified, Variable):
     self.id = id
 
 class Object(Identified, Variable):
-  def __init__(self, id):
+  def __init__(self, id, type):
     if isstring(id): id = Identifier(id)
     assert isinstance(id, Identifier)
-    super(Object, self).__init__({"id": id})
-    self.id = id
+    assert isinstance(type, Type)
+    super(Object, self).__init__({"id": id, "type": type})
+    self.id   = id
+    self.type = type
 
 class ObjectProperty(Variable):
-  def __init__(self, obj, prop):
-    assert isinstance(obj, Object)
+  def __init__(self, obj, prop, type):
+    assert isinstance(obj, Object), "got " + obj.__class__.__name__
     assert isinstance(prop, Identifier)
+    assert isinstance(type, Type)
     super(ObjectProperty, self).__init__({"obj" : obj, "prop": prop})
     self.obj  = obj
     self.prop = prop
+    self.type = type
 
 @novisiting
 class UnOp(Expression):
@@ -385,6 +389,7 @@ class TupleType(Type):
 class ObjectType(Type):
   def __init__(self, name):
     assert isidentifier(name), name + " is no identifier"
+    super(ObjectType, self).__init__({"name": name})
     self.name = name
   def __repr__(self): return "object " + self.name
 

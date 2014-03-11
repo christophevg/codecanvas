@@ -136,9 +136,16 @@ class Dumper(language.Dumper):
     return stmt.operand.accept(self) + " -= " + stmt.expression.accept(self) + ";"
 
   def visit_MethodCall(self, call):
-    # TODO: change this into actual C code !!!
-    return call.obj.accept(self) + "->" + call.method.name + "(" + \
-           ",".join([arg.accept(self) for arg in call.arguments]) +  ")"
+    try:
+      class_prefix = {
+        "ManyType {}"                 : lambda: "list",
+        "ObjectType {'name': 'node'}" : lambda: call.obj.type.name + "s"
+      }[str(call.obj.type)]()
+    except KeyError:
+      raise NotImplementedError, "missing " + str(call.obj.type)
+    return class_prefix + "_" + call.method.name + "(" + \
+           call.obj.accept(self) + (", " if len(call.arguments) else "") + \
+           ", ".join([arg.accept(self) for arg in call.arguments]) +  ")"
 
   def visit_Object(self, obj):
     return obj.name
