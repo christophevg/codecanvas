@@ -32,19 +32,25 @@ class Code(object):
     return self.sticking["top"] + self.floating + self.sticking["bottom"]
   children = property(_children)
 
+  def remove_child(self, index):
+    self.update_child(index, None)
+
   def update_child(self, index, value):
     if index < len(self.sticking["top"]):
-      self.sticking["top"][index] = value
+      if value is None: self.sticking["top"].pop(index)
+      else:             self.sticking["top"][index] = value
       return
 
     index -= len(self.sticking["top"])
     if index < len(self.floating):
-      self.floating[index] = value
+      if value is None: self.floating.pop(index)
+      else:             self.floating[index] = value
       return
 
     index -= len(self.floating)
     if index < len(self.sticking["bottom"]):
-      self.sicking["bottom"] = value
+      if value is None: self.sticking["bottom"].pop(index)
+      else:             self.sicking["bottom"] = value
       return
     raise IndexError, "index " + str(index) + " is not within child range."
 
