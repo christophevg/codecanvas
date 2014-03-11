@@ -32,6 +32,22 @@ class Code(object):
     return self.sticking["top"] + self.floating + self.sticking["bottom"]
   children = property(_children)
 
+  def update_child(self, index, value):
+    if index < len(self.sticking["top"]):
+      self.sticking["top"][index] = value
+      return
+
+    index -= len(self.sticking["top"])
+    if index < len(self.floating):
+      self.floating[index] = value
+      return
+
+    index -= len(self.floating)
+    if index < len(self.sticking["bottom"]):
+      self.sicking["bottom"] = value
+      return
+    raise IndexError, "index " + str(index) + " is not within child range."
+
   def _sticky(self):
     return not self.stick_to is None
   sticky = property(_sticky)
