@@ -91,7 +91,7 @@ class Dumper(language.Dumper):
 
   def visit_Function(self, function):
     return function.type.accept(self) + " " + function.name + \
-           "(" + (",".join([param.accept(self) for param in function.params]) \
+           "(" + (", ".join([param.accept(self) for param in function.params]) \
                    if len(function.params) else "void") + ") " + \
            "{\n" + \
            "\n".join([child.accept(self) for child in function]) + \
@@ -192,7 +192,7 @@ class Dumper(language.Dumper):
     return type.type.accept(self) + "*"
 
   def visit_ObjectType(self, type):
-    return type.name
+    return type.name + "_t*"
 
   def visit_TupleType(self, type):
     raise NotImplementedError, "Tuples aren't supported in C. " + \
