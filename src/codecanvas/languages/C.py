@@ -230,9 +230,16 @@ class Dumper(language.Dumper):
   def visit_ListLiteral(self, literal):
     return ", ".join([item.accept(self) for item in literal.children])
 
+  # TODO: make this scheme more robust
+  atoms = []
   def visit_AtomLiteral(self, literal):
-    # TODO: implement this in C !!!
-    return "atom_" + literal.name
+    try:
+      index = Dumper.atoms.index(literal.name) + 1
+    except:
+      Dumper.atoms.append(literal.name)
+      index = len(Dumper.atoms)
+
+    return "0x00%02x" % index
 
   def visit_ObjectProperty(self, prop):
     # TODO: implement this in C !!!
