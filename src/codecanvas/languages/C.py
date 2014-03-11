@@ -126,9 +126,6 @@ class Dumper(language.Dumper):
                 "}"
     return code
 
-  def visit_EmptyStatement(self, stmt):
-    return ""
-
   def visit_Assign(self, stmt):
     return stmt.operand.accept(self) + " = " + stmt.expression.accept(self) + ";"
 

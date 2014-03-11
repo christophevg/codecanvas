@@ -128,8 +128,6 @@ class Visitor(instructions.Visitor):
     for arg in stmt.arguments:
       arg.accept(self)
 
-  def visit_EmptyStatement(self, stmt): pass
-
   def visit_Object(self, obj): pass
 
   def visit_Identifier(self, id): pass

@@ -83,10 +83,6 @@ class Statement(Code):
   def __init__(self, data):
     super(Statement, self).__init__(data)
 
-class EmptyStatement(Statement):
-  def __init__(self):
-    super(EmptyStatement, self).__init__({})
-
 class IfStatement(WithoutChildModification, Statement):
   def __init__(self, expression, true_clause, false_clause=[]):
     assert isinstance(expression, Expression)
