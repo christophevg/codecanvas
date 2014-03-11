@@ -11,6 +11,7 @@ import codecanvas.instructions as instructions
 class Visitor(instructions.Visitor):
   def __init__(self):
     self._stack = []
+    self.child  = 0
 
   def get_stack(self): return self._stack
   stack = property(get_stack)
@@ -20,33 +21,47 @@ class Visitor(instructions.Visitor):
 
   @stacked
   def visit_Unit(self, code):
-    for child in code: child.accept(self)
+    for index, child in enumerate(code):
+      self.child = index
+      child.accept(self)
 
   @stacked
   def visit_Section(self, code):
-    for child in code: child.accept(self)
+    for index, child in enumerate(code):
+      self.child = index
+      child.accept(self)
 
   @stacked
   def visit_Module(self, code):
-    for child in code: child.accept(self)
+    for index, child in enumerate(code):
+      self.child = index
+      child.accept(self)
 
   def visit_Constant(self, code): pass
 
   @stacked
   def visit_Function(self, code):
-    for child in code: child.accept(self)
+    for index, child in enumerate(code):
+      self.child = index
+      child.accept(self)
 
   @stacked
   def visit_Block(self, code):
-    for child in code: child.accept(self)
+    for index, child in enumerate(code):
+      self.child = index
+      child.accept(self)
 
   @stacked
   def visit_Print(self, code):
-    for child in code: child.accept(self)
+    for index, child in enumerate(code):
+      self.child = index
+      child.accept(self)
 
   @stacked
   def visit_Import(self, code):
-    for child in code: child.accept(self)
+    for index, child in enumerate(code):
+      self.child = index
+      child.accept(self)
   
   def visit_VoidType(self, code): pass
   def visit_IntegerType(self, code): pass
@@ -60,7 +75,9 @@ class Visitor(instructions.Visitor):
 
   @stacked
   def visit_StructuredType(self, code):
-    for child in code: child.accept(self)
+    for index, child in enumerate(code):
+      self.child = index
+      child.accept(self)
 
   @stacked
   def visit_Property(self, code):
@@ -72,17 +89,23 @@ class Visitor(instructions.Visitor):
   
   @stacked
   def visit_WhileDo(self, code):
-    for child in code: child.accept(self)
+    for index, child in enumerate(code):
+      self.child = index
+      child.accept(self)
 
   @stacked
   def visit_RepeatUntil(self, code):
-    for child in code: child.accept(self)
+    for index, child in enumerate(code):
+      self.child = index
+      child.accept(self)
     
   # calls
 
   @stacked
   def visit_FunctionCall(self, code):
-    for child in code: child.accept(self)
+    for index, child in enumerate(code):
+      self.child = index
+      child.accept(self)
 
   @stacked
   def visit_SimpleVariable(self, code): pass
@@ -96,14 +119,21 @@ class Visitor(instructions.Visitor):
 
   @stacked
   def visit_IfStatement(self, cond):
-    for stmt in cond.true_clause: stmt.accept(self)
-    for stmt in cond.false_clause: stmt.accept(self)
+    for index, stmt in enumerate(cond.true_clause):
+      self.child = index
+      stmt.accept(self)
+    for index, stmt in enumerate(cond.false_clause):
+      self.child = index
+      stmt.accept(self)
 
   @stacked
   def visit_CaseStatement(self, case):
-    for stmt in case.cases: stmt.accept(self)
+    for index, stmt in enumerate(case.cases):
+      self.child = index
+      stmt.accept(self)
     for consequence in case.consequences:
-      for stmt in consequence:
+      for index, stmt in enumerate(consequence):
+        self.child = index
         stmt.accept(self)
 
   @stacked
@@ -125,7 +155,8 @@ class Visitor(instructions.Visitor):
   def visit_MethodCall(self, stmt):
     stmt.obj.accept(self)
     stmt.method.accept(self)
-    for arg in stmt.arguments:
+    for index, arg in enumerate(stmt.arguments):
+      self.child = index
       arg.accept(self)
 
   def visit_Object(self, obj): pass
@@ -134,7 +165,9 @@ class Visitor(instructions.Visitor):
 
   @stacked
   def visit_ListLiteral(self, literal):
-    for child in literal: child.accept(self)
+    for index, child in enumerate(literal):
+      self.child = index
+      child.accept(self)
 
   @stacked
   def visit_Inc(self, stmt):
