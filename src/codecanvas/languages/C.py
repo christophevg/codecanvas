@@ -275,19 +275,16 @@ class Dumper(language.Dumper):
   # Matching
   
   def visit_Match(self, match):
-    # TODO
-    return "match(" + match.comp.accept(self) + \
-           ((", " + match.expression.accept(self)) \
-             if not match.expression is None else "") + \
-           ")"
+    if isinstance(match.comp, code.Anything):
+      return "matcher_anything()"
+    else:
+      return "matcher_create(" + match.comp.accept(self) + \
+             ((", " + match.expression.accept(self)) \
+               if not match.expression is None else "") + \
+             ")"
 
   def visit_Comparator(self, comp):
-    # TODO
-    return comp.operator
-
-  def visit_Anything(self, comp):
-    # TODO
-    return "*"
+    return '"' + comp.operator + '"'
 
   # Expressions
   
