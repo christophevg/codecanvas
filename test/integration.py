@@ -87,11 +87,12 @@ printf("loop");
     self.assertEqualToSource(self.unit, "some_func()")
 
   def test_function_call_with_arguments(self):
+    arguments = [ code.SimpleVariable("a"),
+                  code.SimpleVariable("b"),
+                  code.BooleanLiteral(False)
+                ]
     self.unit.select("test", "dec") \
-      .append(code.FunctionCall("some_func")) \
-      .append(code.SimpleVariable("a"), 
-              code.SimpleVariable("b"),
-              code.BooleanLiteral(False))
+      .append(code.FunctionCall("some_func", arguments))
     self.assertEqualToSource(self.unit, "some_func(a, b, FALSE)")
 
   def test_single_line_comment(self):
