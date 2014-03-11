@@ -46,6 +46,7 @@ class Transformer(language.Visitor):
                           .tag("import_stdio")
 
   tuple_index = 0
+  @stacked
   def visit_TupleType(self, tuple):
     """
     Tuples are structured types.
@@ -65,7 +66,18 @@ class Transformer(language.Visitor):
 
     # replace tuple type by a NamedType
     # TODO: we assume every parent has a .type property that can be replaced!!!
-    self.stack[-1].type = code.NamedType(name)
+    self.stack[-2].type = code.NamedType(name)
+
+  @stacked
+  def visit_Function(self, function):
+    """
+    Prune empty function declarations.
+    """
+    if len(function.children) < 1:
+      if len(self.stack) > 1:
+        self.stack[-2].remove_child(self.child)
+
+    super(Transformer, self).visit_Function(function)
 
 class Generic(Platform):
   def type(self, type):
