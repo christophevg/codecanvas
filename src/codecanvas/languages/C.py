@@ -228,8 +228,7 @@ class Dumper(language.Dumper):
     return id.name
 
   def visit_ListLiteral(self, literal):
-    # TODO: implement this in C !!!
-    return ",".join([item.accept(self) for item in literal.children])
+    return ", ".join([item.accept(self) for item in literal.children])
 
   def visit_AtomLiteral(self, literal):
     # TODO: implement this in C !!!
@@ -260,7 +259,8 @@ class Dumper(language.Dumper):
   # Calls
   
   def visit_FunctionCall(self, call):
-    return call.function.name + "(" + self.visit_children(call, ", ")  + ")"
+    return call.function.name + "(" + \
+           ", ".join([arg.accept(self) for arg in call.arguments])  + ")"
 
   def visit_SimpleVariable(self, var):
     return var.id.accept(self)
@@ -270,7 +270,7 @@ class Dumper(language.Dumper):
   def visit_Match(self, match):
     # TODO
     return "match(" + match.comp.accept(self) + \
-           (("," + match.expression.accept(self)) \
+           ((", " + match.expression.accept(self)) \
              if not match.expression is None else "") + \
            ")"
 
