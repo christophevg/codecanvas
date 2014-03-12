@@ -21,13 +21,13 @@ class Emitter(object):
     self.output = output
     return self
 
-  def emit(self, code):
+  def emit(self, unit):
     # two phases, two visitations: first to transform the code according to
     # platform and language "limitations", ...
-    code.accept(Transformer())
+    unit.accept(Transformer())
     # next to dump it to files
-    if self.output: code.accept(Builder(self.output, platform=self.platform))
-    else:           return code.accept(Dumper(platform=self.platform))
+    if self.output: unit.accept(Builder(self.output, platform=self.platform))
+    else:           return unit.accept(Dumper(platform=self.platform))
 
 class Transformer(language.Visitor):
   """
@@ -45,28 +45,36 @@ class Transformer(language.Visitor):
                           .stick_top() \
                           .tag("import_stdio")
 
+  tuples = {}
   tuple_index = 0
   @stacked
   def visit_TupleType(self, tuple):
     """
     Tuples are structured types.
     """
-    # TODO: create nicer names
-    name = "tuple_" + str(Transformer.tuple_index)
-    Transformer.tuple_index += 1
-    struct = code.StructuredType(name)
-    for index, type in enumerate(tuple.types):
-      struct.append(code.Property("elem_"+str(index), type))
+    try:
+      named_type = Transformer.tuples[repr(tuple)]
+    except:
+      # TODO: create nicer names
+      name = "tuple_" + str(Transformer.tuple_index)
+      Transformer.tuple_index += 1
+      struct = code.StructuredType(name)
+      for index, type in enumerate(tuple.types):
+        struct.append(code.Property("elem_"+str(index), type))
 
-    unit = self.stack[0]
-    if unit.find("tuples") == None:
-      unit.append(structure.Module("tuples"))
+      unit = self.stack[0]
+      if unit.find("tuples") == None:
+        unit.append(structure.Module("tuples"))
 
-    unit.find("tuples").select("def").append(struct)
+      unit.find("tuples").select("def").append(struct)
+
+      named_type = code.NamedType(name)
 
     # replace tuple type by a NamedType
     # TODO: we assume every parent has a .type property that can be replaced!!!
-    self.stack[-2].type = code.NamedType(name)
+    self.stack[-2].type = named_type
+    Transformer.tuples[repr(tuple)] = named_type
+    # TODO: all items that are typed with this should also be changed
 
   @stacked
   def visit_Function(self, function):
@@ -149,6 +157,9 @@ class Dumper(language.Dumper):
 
   def visit_MethodCall(self, call):
     try:
+      if isinstance(call.obj.type, code.ManyType):
+        print "MethodCall on ", call.obj.type
+        print call.obj.type.type
       class_prefix = {
         "ManyType {}"                 : lambda: "list",
         "ObjectType {'name': 'node'}" : lambda: call.obj.type.name + "s"

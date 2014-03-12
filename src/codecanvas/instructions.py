@@ -239,6 +239,8 @@ class Object(Identified, Variable):
     super(Object, self).__init__({"id": id, "type": type})
     self.id   = id
     self.type = type
+  def __repr__(self):
+    return "Object(" + repr(self.id) + ":" + repr(self.type) + ")"
 
 class ObjectProperty(Variable):
   def __init__(self, obj, prop, type):
@@ -249,6 +251,8 @@ class ObjectProperty(Variable):
     self.obj  = obj
     self.prop = prop
     self.type = type
+  def __repr__(self):
+    return "ObjectProperty(" + repr(self.obj) + "." + repr(self.prop) + ":" + repr(self.type) + ")"
 
 @novisiting
 class UnOp(Expression):
@@ -328,6 +332,7 @@ class BooleanLiteral(Literal):
 class IntegerLiteral(Literal):
   def __init__(self, value):
     assert isinstance(value, int)
+    super(IntegerLiteral, self).__init__({"value": value})
     self.value = value
   def __repr__(self):
     return str(self.value)
@@ -362,11 +367,12 @@ class AtomLiteral(Identified, Literal):
 
 # Types
 
-class Type(Code): pass
+class Type(WithoutChildModification, Code): pass
 
 class NamedType(Type):
   def __init__(self, name):
     assert isstring(name)
+    super(NamedType, self).__init__({"name": name})
     self.name = name
   def __repr__(self): return "type " + self.name
   
@@ -385,8 +391,9 @@ class TupleType(Type):
   def __init__(self, types):
     for type in types:
       assert isinstance(type, Type)
+    super(TupleType, self).__init__({})
     self.types = types
-  def __repr__(self): return "tuple " + ",".join(self.types)
+  def __repr__(self): return "tuple " + ",".join([repr(type) for type in self.types])
 
 class ObjectType(Type):
   def __init__(self, name):

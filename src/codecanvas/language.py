@@ -159,7 +159,11 @@ class Visitor(instructions.Visitor):
       self.child = index
       arg.accept(self)
 
-  def visit_Object(self, obj): pass
+  @stacked
+  def visit_Object(self, obj):
+    obj.type.accept(self)
+
+  def visit_ObjectType(self, type): pass
 
   def visit_Identifier(self, id): pass
 
@@ -189,6 +193,7 @@ class Visitor(instructions.Visitor):
   def visit_ObjectProperty(self, prop):
     prop.obj.accept(self)
     prop.prop.accept(self)
+    prop.type.accept(self)
 
   @stacked
   def visit_Plus(self, stmt):
