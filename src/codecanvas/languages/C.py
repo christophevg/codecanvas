@@ -232,6 +232,10 @@ class Dumper(language.Dumper):
 
   # Fragments
 
+  @stacked
+  def visit_ByteLiteral(self, literal):
+    return "0x%02x" % literal.value
+
   def visit_IntegerLiteral(self, literal):
     return str(literal.value)
 

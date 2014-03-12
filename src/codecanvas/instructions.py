@@ -336,6 +336,14 @@ class IntegerLiteral(Literal):
     self.value = value
   def __repr__(self):
     return str(self.value)
+
+class ByteLiteral(Literal):
+  def __init__(self, value):
+    assert isinstance(value, int) and value < 256
+    super(ByteLiteral, self).__init__({"value": value})
+    self.value = value
+  def __repr__(self):
+    return "0x%02x" % self.value
   
 class FloatLiteral(Literal):
   def __init__(self, value):
