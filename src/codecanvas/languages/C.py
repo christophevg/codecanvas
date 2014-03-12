@@ -149,19 +149,27 @@ class Transformer(language.Visitor):
     if unit.find("matching") == None:
       unit.append(structure.Module("matching"))
       # add match_anything
+      match_anything = code.Function("match_anything", type=code.BooleanType(),
+                                     params=[ code.Parameter("value",
+                                              match.expression.type) ])\
+        .contains(code.Return(code.BooleanLiteral(True)))
       unit.select("matching", "dec").append(
-        code.Function(name, type=code.BooleanType(),
-                      params=[ code.Parameter("value",
-                               match.expression.type) ])\
-            .contains(code.Return(code.BooleanLiteral(True)))
+        match_anything
+      )
+      unit.select("matching", "def").append(
+        code.Prototype.from_Function(match_anything)
       )
 
     # add the matching function
     unit.select("matching", "dec").append(function)
+    unit.select("matching", "def").append(code.Prototype.from_Function(function))
 
     # replace old Match with Identifier
     id = code.Identifier(name)
     self.stack[-2].update_child(self.child, id)
+
+    # and include an import to the module that now uses matching
+    self.stack[1].select("def").append(code.Import("matching"))
 
 class Generic(Platform):
   def type(self, type):
@@ -240,6 +248,7 @@ class Dumper(language.Dumper):
 
   @stacked
   def visit_MethodCall(self, call):
+    # TODO: move this to Transformer and raise NotImplementedError
     try:
       class_prefix = {
         "ManyType {}"                 : lambda: "list",
