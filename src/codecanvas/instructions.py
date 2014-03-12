@@ -62,6 +62,11 @@ class Function(Identified, Code):
     self.type   = type
     self.params = params
 
+class Prototype(WithoutChildren, Function):
+  @classmethod
+  def from_Function(clazz, function):
+    return Prototype(function.name, type=function.type, params=function.params)
+
 class Parameter(Identified, Code):
   def __init__(self, id, type=None, default=None):
     # name

@@ -197,6 +197,12 @@ class Dumper(language.Dumper):
            "\n}"
 
   @stacked
+  def visit_Prototype(self, function):
+    return function.type.accept(self) + " " + function.name + \
+           "(" + (", ".join([param.accept(self) for param in function.params]) \
+                   if len(function.params) else "void") + ");"
+
+  @stacked
   def visit_Parameter(self, param):
     return param.type.accept(self) + " " + param.id.accept(self)
 
