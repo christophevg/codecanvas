@@ -19,6 +19,16 @@ class Visitor(instructions.Visitor):
   def stack_as_string(self):
     return " > ".join([obj.__class__.__name__ for obj in self._stack])
 
+  def accept(self, target):
+    """
+    General purpose accept handler. Returns an update if the handler provides
+    one, else it returns the original value.
+    Classic: something.accept(self)
+    Now:     something = self.accept(something)
+    """
+    update = target.accept(self)
+    return update if not update is None else target
+
   # visiting functions
 
   @stacked
@@ -45,25 +55,27 @@ class Visitor(instructions.Visitor):
   def visit_Function(self, code):
     for index, child in enumerate(code):
       self.child = index
-      child.accept(self)
+      # TODO: fix this ;-)
+      try: code.update_child(index, self.accept(child))
+      except: pass
 
   @stacked
   def visit_Block(self, code):
     for index, child in enumerate(code):
       self.child = index
-      child.accept(self)
+      code.update_child(index, self.accept(child))
 
   @stacked
   def visit_Print(self, code):
     for index, child in enumerate(code):
       self.child = index
-      child.accept(self)
+      code.update_child(index, self.accept(child))
 
   @stacked
   def visit_Import(self, code):
     for index, child in enumerate(code):
       self.child = index
-      child.accept(self)
+      code.update_child(index, self.accept(child))
   
   def visit_VoidType(self, code): pass
   def visit_IntegerType(self, code): pass
@@ -79,11 +91,11 @@ class Visitor(instructions.Visitor):
   def visit_StructuredType(self, code):
     for index, child in enumerate(code):
       self.child = index
-      child.accept(self)
+      code.update_child(index, self.accept(child))
 
   @stacked
   def visit_Property(self, code):
-    code.type.accept(self)
+    code.type = self.accept(code.type)
   
   def visit_NamedType(self, code): pass
   
@@ -93,13 +105,13 @@ class Visitor(instructions.Visitor):
   def visit_WhileDo(self, code):
     for index, child in enumerate(code):
       self.child = index
-      child.accept(self)
+      code.update_child(index, self.accept(child))
 
   @stacked
   def visit_RepeatUntil(self, code):
     for index, child in enumerate(code):
       self.child = index
-      child.accept(self)
+      code.update_child(index, self.accept(child))
     
   # calls
 
@@ -107,16 +119,15 @@ class Visitor(instructions.Visitor):
   def visit_FunctionCall(self, code):
     for index, arg in enumerate(code.arguments):
       self.child = index
-      arg.accept(self)
+      code.arguments[index] = self.accept(arg)
 
   @stacked
   def visit_MethodCall(self, code):
-    code.obj.accept(self)
-    code.method.accept(self)
+    code.obj    = self.accept(code.obj)
+    code.method = self.accept(code.method)
     for index, arg in enumerate(code.arguments):
       self.child = index
-      arg.accept(self)
-
+      code.arguments[index] = self.accept(arg)
 
   @stacked
   def visit_SimpleVariable(self, code): pass
@@ -130,42 +141,40 @@ class Visitor(instructions.Visitor):
 
   @stacked
   def visit_IfStatement(self, cond):
-    cond.expression.accept(self)
+    cond.expression = self.accept(cond.expression)
     for index, stmt in enumerate(cond.true_clause):
       self.child = index
-      stmt.accept(self)
+      cond.true_clause[index] = self.accept(stmt)
     for index, stmt in enumerate(cond.false_clause):
       self.child = index
-      stmt.accept(self)
+      cond.false_clause[index] = self.accept(stmt)
 
   @stacked
   def visit_CaseStatement(self, case):
     for index, stmt in enumerate(case.cases):
       self.child = index
-      stmt.accept(self)
+      case.cases[index] = self.accept(stmt)
     for consequence in case.consequences:
       for index, stmt in enumerate(consequence):
         self.child = index
-        stmt.accept(self)
+        consequence[index] = self.accept(stmt)
 
   @stacked
-  def visit_Assign(self, stmt):
-    stmt.operand.accept(self)
-    stmt.expression.accept(self)
+  def visit_Assign(self, stmt):  self.visit_VarExpOp(stmt)
 
   @stacked
-  def visit_Add(self, stmt):
-    stmt.operand.accept(self)
-    stmt.expression.accept(self)
+  def visit_Add(self, stmt):     self.visit_VarExpOp(stmt)
 
   @stacked
-  def visit_Dec(self, stmt):
-    stmt.operand.accept(self)
-    stmt.expression.accept(self)
+  def visit_Dec(self, stmt):     self.visit_VarExpOp(stmt)
+
+  def visit_VarExpOp(self, stmt):
+    stmt.operand    = self.accept(stmt.operand)
+    stmt.expression = self.accept(stmt.expression)
 
   @stacked
   def visit_Object(self, obj):
-    obj.type.accept(self)
+    obj.type = self.accept(obj.type)
 
   def visit_ObjectType(self, type): pass
 
@@ -175,19 +184,19 @@ class Visitor(instructions.Visitor):
   def visit_ListLiteral(self, literal):
     for index, child in enumerate(literal):
       self.child = index
-      child.accept(self)
+      literal.update_child(index, self.accept(child))
 
   @stacked
   def visit_Inc(self, stmt):
-    stmt.operand.accept(self)
+    stmt.operand = self.accept(stmt.operand)
 
   @stacked
   def visit_Dec(self, stmt):
-    stmt.operand.accept(self)
+    stmt.operand = self.accept(stmt.operand)
 
   @stacked
   def visit_ManyType(self, type):
-    type.type.accept(self)
+    type.type = self.accept(type.type)
 
   def visit_AtomLiteral(self, literal): pass
   def visit_IntegerLiteral(self, literal): pass
@@ -195,13 +204,13 @@ class Visitor(instructions.Visitor):
 
   @stacked
   def visit_ObjectProperty(self, prop):
-    prop.obj.accept(self)
-    prop.prop.accept(self)
-    prop.type.accept(self)
+    prop.obj  = self.accept(prop.obj)
+    prop.prop = self.accept(prop.prop)
+    prop.type = self.accept(prop.type)
 
   @stacked
   def visit_Not(self, op):
-    op.operand.accept(self)
+    op.operand = self.accept(op.operand)
 
   @stacked
   def visit_And(self, op):       self.visit_BinOp(op)
@@ -242,34 +251,27 @@ class Visitor(instructions.Visitor):
   @stacked
   def visit_Modulo(self, op):    self.visit_BinOp(op)
 
+  @stacked
+  def visit_Plus(self, op):      self.visit_BinOp(op)
+
+  @stacked
+  def visit_Minus(self, op):     self.visit_BinOp(op)
+
+  @stacked
+  def visit_Mult(self, op):      self.visit_BinOp(op)
+
+  @stacked
+  def visit_Div(self, op):       self.visit_BinOp(op)
+
   def visit_BinOp(self, op):
-    op.left.accept(self)
-    op.right.accept(self)
-
-  @stacked
-  def visit_Plus(self, stmt):
-    stmt.left.accept(self)
-    stmt.right.accept(self)
-
-  @stacked
-  def visit_Minus(self, stmt):
-    stmt.left.accept(self)
-    stmt.right.accept(self)
-
-  @stacked
-  def visit_Mult(self, stmt):
-    stmt.left.accept(self)
-    stmt.right.accept(self)
-
-  @stacked
-  def visit_Div(self, stmt):
-    stmt.left.accept(self)
-    stmt.right.accept(self)
+    op.left  = self.accept(op.left)
+    op.right = self.accept(op.right)
 
   @stacked
   def visit_Match(self, match):
-    match.comp.accept(self)
-    if not match.expression is None: match.expression.accept(self)
+    match.comp = self.accept(match.comp)
+    if not match.expression is None:
+      match.expression = self.accept(match.expression)
 
   def visit_Comparator(self, comp): pass
   def visit_Anything(self, comp): pass

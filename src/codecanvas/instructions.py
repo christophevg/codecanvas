@@ -157,7 +157,7 @@ class Comment(ImmutUnOp):
     return "# " + self.comment
 
 @novisiting
-class BinOp(Statement):
+class VarExpOp(Statement):
   def __init__(self, operand, expression):
     assert isinstance(operand, Variable)
     assert isinstance(expression, Expression)
@@ -167,9 +167,9 @@ class BinOp(Statement):
   def ends(self):
     return True
 
-class Assign(BinOp): pass
-class Add(BinOp): pass
-class Sub(BinOp): pass
+class Assign(VarExpOp): pass
+class Add(VarExpOp): pass
+class Sub(VarExpOp): pass
 
 class Return(Statement):
   def __init__(self, expression=None):

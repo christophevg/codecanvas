@@ -73,8 +73,8 @@ class Transformer(language.Visitor):
       named_type = code.NamedType(name)
 
     # replace tuple type by a NamedType
-    self.stack[-2].type = named_type
     Transformer.tuples[repr(tuple)] = named_type
+    return named_type
 
   atoms = []
   @stacked
@@ -92,9 +92,8 @@ class Transformer(language.Visitor):
       index = len(Transformer.atoms)
 
     # replace the atom with a ListLiteral of 0x00 and 0x.. <- sequence
-    literal = code.ListLiteral().contains(code.ByteLiteral(0),
-                                          code.ByteLiteral(index))
-    self.stack[-2].update_child(self.child, literal)
+    return code.ListLiteral().contains(code.ByteLiteral(0),
+                                       code.ByteLiteral(index))
 
   @stacked
   def visit_Function(self, function):
@@ -119,9 +118,7 @@ class Transformer(language.Visitor):
 
     if isinstance(match.comp, code.Anything):
       # Anything is replaced by identifier to function that always returns true
-      id = code.Identifier("match_anything")
-      self.stack[-2].update_child(self.child, id)
-      return
+      return code.Identifier("match_anything")
 
     # TODO: create nicer/functional names ;-)
     name = "match_" + str(Transformer.matchers)
@@ -164,12 +161,53 @@ class Transformer(language.Visitor):
     unit.select("matching", "dec").append(function)
     unit.select("matching", "def").append(code.Prototype.from_Function(function))
 
-    # replace old Match with Identifier
-    id = code.Identifier(name)
-    self.stack[-2].update_child(self.child, id)
-
     # and include an import to the module that now uses matching
     self.stack[1].select("def").append(code.Import("matching"))
+
+    # replace old Match with Identifier
+    return code.Identifier(name)
+
+  def visit_MethodCall(self, call):
+    """
+    MethodCalls are transformed into FunctionCalls. If the object on which the
+    method is invoked is ManyType, the prefix is set to "list", else to the name
+    of the (Object)Type in plural.
+    """
+    # first let the standard visitor visit all lower-level dependencies
+    super(Transformer, self).visit_MethodCall(call)
+
+    if isinstance(call.obj.type, code.ManyType): return self.visit_ListCall(call)
+
+    if not isinstance(call.obj.type, code.ObjectType):
+      raise NotImplementedError, "only list- and object-types are supported"
+
+    name = call.obj.type.name + "s_" + call.method.name
+    # create FunctionCall with object as first argument
+    function = code.FunctionCall(name, [call.obj])
+    for arg in call.arguments:
+      function.arguments.append(arg)
+
+    # replace methodcall by functioncall, by returning it
+    return function
+
+  def visit_ListCall(self, call):
+    """
+    Managing lists is more generic than method calls, but the typing is hard
+    to make generic. Therefore for every listed type, manipulating functions are
+    generated as needed.
+    """
+    name = "list_of_" + {
+      "ByteType"  : lambda: "byte",
+      "NamedType" : lambda: call.obj.type.type.name
+    }[str(call.obj.type.type.__class__.__name__)]() + "s_" + call.method.name
+
+    # create FunctionCall with object as first argument
+    function = code.FunctionCall(name, [call.obj])
+    for arg in call.arguments:
+      function.arguments.append(arg)
+
+    # replace methodcall by functioncall
+    return function
 
 class Generic(Platform):
   def type(self, type):
@@ -245,20 +283,6 @@ class Dumper(language.Dumper):
   @stacked
   def visit_Sub(self, stmt):
     return stmt.operand.accept(self) + " -= " + stmt.expression.accept(self) + ";"
-
-  @stacked
-  def visit_MethodCall(self, call):
-    # TODO: move this to Transformer and raise NotImplementedError
-    try:
-      class_prefix = {
-        "ManyType {}"                 : lambda: "list",
-        "ObjectType {'name': 'node'}" : lambda: call.obj.type.name + "s"
-      }[str(call.obj.type)]()
-    except KeyError:
-      raise NotImplementedError, "missing " + str(call.obj.type)
-    return class_prefix + "_" + call.method.name + "(" + \
-           call.obj.accept(self) + (", " if len(call.arguments) else "") + \
-           ", ".join([arg.accept(self) for arg in call.arguments]) +  ")"
 
   @stacked
   def visit_Object(self, obj):
@@ -479,6 +503,10 @@ class Dumper(language.Dumper):
 
   def visit_Anything(self, comp):
     raise NotImplementedError, "Anything comparator isn't supported in C. " + \
+                               "Transformers should have replaced this."
+
+  def visit_MethodCall(self, call):
+    raise NotImplementedError, "MethodCalls aren't supported in C. " + \
                                "Transformers should have replaced this."
 
 class Builder(language.Builder, Dumper):
