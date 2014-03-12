@@ -157,9 +157,6 @@ class Dumper(language.Dumper):
 
   def visit_MethodCall(self, call):
     try:
-      if isinstance(call.obj.type, code.ManyType):
-        print "MethodCall on ", call.obj.type
-        print call.obj.type.type
       class_prefix = {
         "ManyType {}"                 : lambda: "list",
         "ObjectType {'name': 'node'}" : lambda: call.obj.type.name + "s"
