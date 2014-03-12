@@ -31,7 +31,9 @@ class Emitter(object):
 
 class Transformer(language.Visitor):
   """
-  Visitor for CodeCanvas-based ASTs to add/remove code automagically.
+  Visitor for CodeCanvas-based ASTs to add/remove code automagically. Allows
+  for transforming constructs that are not supported by C into comparative
+  solutions that are.
   """
 
   @stacked
@@ -50,12 +52,12 @@ class Transformer(language.Visitor):
   @stacked
   def visit_TupleType(self, tuple):
     """
-    Tuples are structured types.
+    Tuples are implemented using structured types.
     """
     try:
       named_type = Transformer.tuples[repr(tuple)]
     except:
-      # TODO: create nicer names
+      # TODO: create nicer/functional names ;-)
       name = "tuple_" + str(Transformer.tuple_index)
       Transformer.tuple_index += 1
       struct = code.StructuredType(name)
@@ -66,19 +68,22 @@ class Transformer(language.Visitor):
       if unit.find("tuples") == None:
         unit.append(structure.Module("tuples"))
 
-      unit.find("tuples").select("def").append(struct)
+      unit.select("tuples", "def").append(struct)
 
       named_type = code.NamedType(name)
 
     # replace tuple type by a NamedType
-    # TODO: we assume every parent has a .type property that can be replaced!!!
     self.stack[-2].type = named_type
     Transformer.tuples[repr(tuple)] = named_type
-    # TODO: all items that are typed with this should also be changed
 
   atoms = []
   @stacked
   def visit_AtomLiteral(self, atom):
+    """
+    Atoms are constructed using two consecutive ByteLiterals. It is assumed that
+    atoms will be used primarily in lists that are emitted to variable argument
+    list accepting functions.
+    """
     # TODO: make this scheme more robust
     try:
       index = Transformer.atoms.index(atom.name) + 1
@@ -101,6 +106,62 @@ class Transformer(language.Visitor):
         self.stack[-2].remove_child(self.child)
 
     super(Transformer, self).visit_Function(function)
+
+  # matching
+
+  matchers = 0
+  @stacked
+  def visit_Match(self, match):
+    """
+    The match is replace with an identifier pointing to a function that contains
+    the actual matching.
+    """
+
+    if isinstance(match.comp, code.Anything):
+      # Anything is replaced by identifier to function that always returns true
+      id = code.Identifier("match_anything")
+      self.stack[-2].update_child(self.child, id)
+      return
+
+    # TODO: create nicer/functional names ;-)
+    name = "match_" + str(Transformer.matchers)
+    Transformer.matchers += 1
+
+    function = code.Function(name, type=code.BooleanType(),
+                             params=[ code.Parameter("value",
+                                      match.expression.type) ])
+
+    # map match.comp to BinOp
+    expression = {
+      "<"  : code.LT,
+      ">"  : code.GT,
+      "<=" : code.LTEQ,
+      ">=" : code.GTEQ,
+      "==" : code.Equals,
+      "!=" : code.NotEquals
+    }[match.comp.operator](code.SimpleVariable("value"), match.expression)
+
+    function.append(code.Return(expression))
+
+    unit = self.stack[0]
+    # make sure that the matching module exists, else create it and add standard
+    # match_anything function
+    if unit.find("matching") == None:
+      unit.append(structure.Module("matching"))
+      # add match_anything
+      unit.select("matching", "dec").append(
+        code.Function(name, type=code.BooleanType(),
+                      params=[ code.Parameter("value",
+                               match.expression.type) ])\
+            .contains(code.Return(code.BooleanLiteral(True)))
+      )
+
+    # add the matching function
+    unit.select("matching", "dec").append(function)
+
+    # replace old Match with Identifier
+    id = code.Identifier(name)
+    self.stack[-2].update_child(self.child, id)
 
 class Generic(Platform):
   def type(self, type):
@@ -328,22 +389,6 @@ class Dumper(language.Dumper):
   def visit_SimpleVariable(self, var):
     return var.id.accept(self)
 
-  # Matching
-  
-  @stacked
-  def visit_Match(self, match):
-    if isinstance(match.comp, code.Anything):
-      return "matcher_anything()"
-    else:
-      return "matcher_create_<TODO:ADD_TYPE>(" + match.comp.accept(self) + \
-             ((", " + match.expression.accept(self)) \
-               if not match.expression is None else "") + \
-             ")"
-
-  @stacked
-  def visit_Comparator(self, comp):
-    return '"' + comp.operator + '"'
-
   # Expressions
   
   @stacked
@@ -384,7 +429,8 @@ class Dumper(language.Dumper):
 
   @stacked
   def visit_Return(self, op):
-    return "return;"
+    return "return" + (" " + op.expression.accept(self) if not op.expression is None
+                        else "") + ";"
 
   @stacked
   def visit_Not(self, op):
@@ -396,7 +442,6 @@ class Dumper(language.Dumper):
 
   # unsupported code-constructs for C
   
-  @stacked
   def visit_AtomLiteral(self, literal):
     raise NotImplementedError, "Atoms aren't supported in C. " + \
                                "Transformers should have replaced this."
@@ -405,9 +450,20 @@ class Dumper(language.Dumper):
     raise NotImplementedError, "Tuples aren't supported in C. " + \
                                "Transformers should have replaced this."
 
-  @stacked
   def visit_CaseStatement(self, case_stmt):
     raise NotImplementedError, "Case constructs aren't supported in C. " + \
+                               "Transformers should have replaced this."
+
+  def visit_Match(self, match):
+    raise NotImplementedError, "Matching aren't supported in C. " + \
+                               "Transformers should have replaced this."
+
+  def visit_Comparator(self, comp):
+    raise NotImplementedError, "Comparators aren't supported in C. " + \
+                               "Transformers should have replaced this."
+
+  def visit_Anything(self, comp):
+    raise NotImplementedError, "Anything comparator isn't supported in C. " + \
                                "Transformers should have replaced this."
 
 class Builder(language.Builder, Dumper):
