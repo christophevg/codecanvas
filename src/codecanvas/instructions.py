@@ -294,11 +294,14 @@ class Call(Expression):
     return True
 
 class FunctionCall(Call):
-  def __init__(self, function, arguments=[]):
+  def __init__(self, function, arguments=[], type=None):
     if isstring(function): function = Identifier(function)
     assert isinstance(function, Identifier)
+    if type is None: type = VoidType()
+    assert isinstance(type, Type), "but got " + type.__class__.__name__
     super(FunctionCall, self).__init__({"function": function}, arguments)
     self.function  = function
+    self.type      = type
 
 class MethodCall(Call):
   def __init__(self, obj, method, arguments=[]):
