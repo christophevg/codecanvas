@@ -35,12 +35,12 @@ class TestIntegration(unittest.TestCase):
 
   def test_empty_structured_type(self):
     struct = code.StructuredType("something")
-    self.assertEqualToSource(struct, "typedef struct {\n\n} something_t;")
+    self.assertEqualToSource(struct, "typedef struct something_t {\n\n} something_t;")
 
   def test_append_property_to_structured_type(self):
     struct = code.StructuredType("something")
     struct.append(code.Property("prop1", code.FloatType()))
-    self.assertEqualToSource(struct, "typedef struct {\nfloat prop1;\n} something_t;")
+    self.assertEqualToSource(struct, "typedef struct something_t {\nfloat prop1;\n} something_t;")
 
   def test_structured_type_tagging(self):
     section = Section("test")
@@ -48,7 +48,7 @@ class TestIntegration(unittest.TestCase):
     struct.tag("struct_something")
     section.append(struct)
     section.select("struct_something").append(code.Property("prop1", code.FloatType()))
-    self.assertEqualToSource(struct, "typedef struct {\nfloat prop1;\n} something_t;")
+    self.assertEqualToSource(struct, "typedef struct something_t {\nfloat prop1;\n} something_t;")
 
   def test_simple_function(self):
     tree = code.Function("name")
@@ -117,7 +117,7 @@ printf("loop");
       code.Property("test2", code.ManyType(code.IntegerType()))
     )
     self.assertEqualToSource(tree, """
-typedef struct {
+typedef struct my_struct_t {
 char* test1;
 int* test2;
 } my_struct_t;""")

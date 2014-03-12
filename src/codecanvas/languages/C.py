@@ -223,9 +223,10 @@ class Dumper(language.Dumper):
                                "Transfomer should have replaced this."
 
   def visit_StructuredType(self, struct):
-    return "typedef struct {\n" + \
+    name = struct.name.accept(self) + "_t"
+    return "typedef struct " + name + " {\n" + \
            "\n".join([prop.accept(self) for prop in struct]) + \
-           "\n} " + struct.name.accept(self) + "_t;"
+           "\n} " + name + ";"
 
   def visit_Property(self, prop):
     return prop.type.accept(self) + " " + prop.name.accept(self) + ";"
