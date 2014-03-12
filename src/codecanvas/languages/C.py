@@ -76,6 +76,21 @@ class Transformer(language.Visitor):
     Transformer.tuples[repr(tuple)] = named_type
     # TODO: all items that are typed with this should also be changed
 
+  atoms = []
+  @stacked
+  def visit_AtomLiteral(self, atom):
+    # TODO: make this scheme more robust
+    try:
+      index = Transformer.atoms.index(atom.name) + 1
+    except:
+      Transformer.atoms.append(atom.name)
+      index = len(Transformer.atoms)
+
+    # replace the atom with a ListLiteral of 0x00 and 0x.. <- sequence
+    literal = code.ListLiteral().contains(code.ByteLiteral(0),
+                                          code.ByteLiteral(index))
+    self.stack[-2].update_child(self.child, literal)
+
   @stacked
   def visit_Function(self, function):
     """
@@ -102,13 +117,16 @@ class Dumper(language.Dumper):
   Visitor for CodeCanvas-based ASTs producing actual C code.
   """  
   def __init__(self, platform=None):
+    super(Dumper, self).__init__()
     if platform is None: platform = Generic()
     assert isinstance(platform, Platform)
     self.platform = platform
 
+  @stacked
   def visit_Constant(self, constant):
     return "#define " + constant.id.accept(self) + " " + constant.value.accept(self)
 
+  @stacked
   def visit_Function(self, function):
     return function.type.accept(self) + " " + function.name + \
            "(" + (", ".join([param.accept(self) for param in function.params]) \
@@ -117,19 +135,23 @@ class Dumper(language.Dumper):
            "\n".join([child.accept(self) for child in function]) + \
            "\n}"
 
+  @stacked
   def visit_Parameter(self, param):
     return param.type.accept(self) + " " + param.id.accept(self)
 
   # Statements
 
+  @stacked
   def visit_Print(self, printed):
     return "printf(" + printed.string.accept(self) + ");"
   
+  @stacked
   def visit_Import(self, importer):
     file = importer.imported
     if not file[0:1] == "<": file = '"' + file + '.h"'
     return "#import " + file
 
+  @stacked
   def visit_IfStatement(self, cond):
     return "if(" + cond.expression.accept(self) + ")" + \
            "{" + "\n".join([stmt.accept(self) for stmt in cond.true_clause]) + "}" + \
@@ -137,24 +159,19 @@ class Dumper(language.Dumper):
                           for stmt in cond.false_clause]) + \
                   "}") if len(cond.false_clause) > 0 else "")
 
-  def visit_CaseStatement(self, case_stmt):
-    code = ""
-    for case, consequence in zip(case_stmt.cases, case_stmt.consequences):
-      code += "case(" + case_stmt.expression.accept(self) + "->" + case.accept(self) + ")" + \
-                "{" + \
-                  "\n".join([stmt.accept(self) for stmt in consequence]) + \
-                "}"
-    return code
-
+  @stacked
   def visit_Assign(self, stmt):
     return stmt.operand.accept(self) + " = " + stmt.expression.accept(self) + ";"
 
+  @stacked
   def visit_Add(self, stmt):
     return stmt.operand.accept(self) + " += " + stmt.expression.accept(self) + ";"
 
+  @stacked
   def visit_Sub(self, stmt):
     return stmt.operand.accept(self) + " -= " + stmt.expression.accept(self) + ";"
 
+  @stacked
   def visit_MethodCall(self, call):
     try:
       class_prefix = {
@@ -167,67 +184,81 @@ class Dumper(language.Dumper):
            call.obj.accept(self) + (", " if len(call.arguments) else "") + \
            ", ".join([arg.accept(self) for arg in call.arguments]) +  ")"
 
+  @stacked
   def visit_Object(self, obj):
     return obj.name
 
+  @stacked
   def visit_Inc(self, stmt):
     return stmt.operand.accept(self) + "++;"
 
+  @stacked
   def visit_Dec(self, stmt):
     return stmt.operand.accept(self) + "--;"
 
 
+  @stacked
   def visit_Plus(self, stmt):
     return "(" + stmt.left.accept(self) + " + " + stmt.right.accept(self) + ")"
 
+  @stacked
   def visit_Minus(self, stmt):
     return "(" + stmt.left.accept(self) + " - " + stmt.right.accept(self) + ")"
 
+  @stacked
   def visit_Mult(self, stmt):
     return "(" + stmt.left.accept(self) + " * " + stmt.right.accept(self) + ")"
 
+  @stacked
   def visit_Div(self, stmt):
     return "(" + stmt.left.accept(self) + " / " + stmt.right.accept(self) + ")"
 
   # Types
 
+  @stacked
   def visit_NamedType(self, type):
     return type.name
 
+  @stacked
   def visit_VoidType(self, type):
     return "void"
 
+  @stacked
   def visit_FloatType(self, type):
     return self.platform.type(type)
 
+  @stacked
   def visit_IntegerType(self, type):
     return self.platform.type(type)
 
+  @stacked
   def visit_LongType(self, type):
     return self.platform.type(type)
 
+  @stacked
   def visit_BooleanType(self, type):
     return self.platform.type(type)
 
+  @stacked
   def visit_ByteType(self, type):
     return self.platform.type(type)
 
+  @stacked
   def visit_ManyType(self, type):
     return type.type.accept(self) + "*"
 
+  @stacked
   def visit_ObjectType(self, type):
     return type.name + "_t*"
 
-  def visit_TupleType(self, type):
-    raise NotImplementedError, "Tuples aren't supported in C. " + \
-                               "Transfomer should have replaced this."
-
+  @stacked
   def visit_StructuredType(self, struct):
     name = struct.name.accept(self) + "_t"
     return "typedef struct " + name + " {\n" + \
            "\n".join([prop.accept(self) for prop in struct]) + \
            "\n} " + name + ";"
 
+  @stacked
   def visit_Property(self, prop):
     return prop.type.accept(self) + " " + prop.name.accept(self) + ";"
 
@@ -237,39 +268,35 @@ class Dumper(language.Dumper):
   def visit_ByteLiteral(self, literal):
     return "0x%02x" % literal.value
 
+  @stacked
   def visit_IntegerLiteral(self, literal):
     return str(literal.value)
 
+  @stacked
   def visit_FloatLiteral(self, literal):
     return str(literal.value)
   
+  @stacked
   def visit_StringLiteral(self, string):
     return '"' + string.data.replace("\n", '\\n') + '"'
 
+  @stacked
   def visit_BooleanLiteral(self, bool):
     return "TRUE" if bool.value else "FALSE"
 
+  @stacked
   def visit_Identifier(self, id):
     return id.name
 
+  @stacked
   def visit_ListLiteral(self, literal):
     return ", ".join([item.accept(self) for item in literal.children])
 
-  # TODO: make this scheme more robust
-  atoms = []
-  def visit_AtomLiteral(self, literal):
-    try:
-      index = Dumper.atoms.index(literal.name) + 1
-    except:
-      Dumper.atoms.append(literal.name)
-      index = len(Dumper.atoms)
-
-    return "0x00%02x" % index
-
+  @stacked
   def visit_ObjectProperty(self, prop):
-    # TODO: implement this in C !!!
     return prop.obj.accept(self) + "->" + prop.prop.accept(self)
 
+  @stacked
   def visit_Comment(self, comment):
     if "\n" in comment.comment:
       return "/* " + comment.comment + " */"
@@ -278,11 +305,13 @@ class Dumper(language.Dumper):
 
   # Loops
   
+  @stacked
   def visit_WhileDo(self, loop):
     return "while(" + loop.condition.accept(self) + ") {\n" + \
            self.visit_children(loop) + \
            "\n}"
 
+  @stacked
   def visit_RepeatUntil(self, loop):
     return "do {\n" + \
            self.visit_children(loop) + \
@@ -290,65 +319,96 @@ class Dumper(language.Dumper):
 
   # Calls
   
+  @stacked
   def visit_FunctionCall(self, call):
     return call.function.name + "(" + \
            ", ".join([arg.accept(self) for arg in call.arguments])  + ")"
 
+  @stacked
   def visit_SimpleVariable(self, var):
     return var.id.accept(self)
 
   # Matching
   
+  @stacked
   def visit_Match(self, match):
     if isinstance(match.comp, code.Anything):
       return "matcher_anything()"
     else:
-      return "matcher_create(" + match.comp.accept(self) + \
+      return "matcher_create_<TODO:ADD_TYPE>(" + match.comp.accept(self) + \
              ((", " + match.expression.accept(self)) \
                if not match.expression is None else "") + \
              ")"
 
+  @stacked
   def visit_Comparator(self, comp):
     return '"' + comp.operator + '"'
 
   # Expressions
   
+  @stacked
   def visit_And(self, op):
     return "(" + op.left.accept(self) + " && " + op.right.accept(self) + ")"
 
+  @stacked
   def visit_Or(self, op):
     return "(" + op.left.accept(self) + " || " + op.right.accept(self) + ")"
 
+  @stacked
   def visit_Equals(self, op):
     return "(" + op.left.accept(self) + " == " + op.right.accept(self) + ")"
     
+  @stacked
   def visit_NotEquals(self, op):
     return "(" + op.left.accept(self) + " != " + op.right.accept(self) + ")"
     
+  @stacked
   def visit_LT(self, op):
     return "(" + op.left.accept(self) + " < " + op.right.accept(self) + ")"
     
+  @stacked
   def visit_LTEQ(self, op):
     return "(" + op.left.accept(self) + " <= " + op.right.accept(self) + ")"
 
+  @stacked
   def visit_GT(self, op):
     return "(" + op.left.accept(self) + " > " + op.right.accept(self) + ")"
 
+  @stacked
   def visit_GTEQ(self, op):
     return "(" + op.left.accept(self) + " >= " + op.right.accept(self) + ")"
 
+  @stacked
   def visit_Modulo(self, op):
     return "(" + op.left.accept(self) + " % " + op.right.accept(self) + ")"
 
+  @stacked
   def visit_Return(self, op):
     return "return;"
 
+  @stacked
   def visit_Not(self, op):
     return "!" + op.operand.accept(self)
 
   # general purpose child visiting
   def visit_children(self, parent, joiner="\n"):
     return joiner.join([child.accept(self) for child in parent])
+
+  # unsupported code-constructs for C
+  
+  @stacked
+  def visit_AtomLiteral(self, literal):
+    raise NotImplementedError, "Atoms aren't supported in C. " + \
+                               "Transformers should have replaced this."
+
+  def visit_TupleType(self, type):
+    raise NotImplementedError, "Tuples aren't supported in C. " + \
+                               "Transformers should have replaced this."
+
+  @stacked
+  def visit_CaseStatement(self, case_stmt):
+    raise NotImplementedError, "Case constructs aren't supported in C. " + \
+                               "Transformers should have replaced this."
 
 class Builder(language.Builder, Dumper):
   """

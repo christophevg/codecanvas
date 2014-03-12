@@ -19,6 +19,8 @@ class Visitor(instructions.Visitor):
   def stack_as_string(self):
     return " > ".join([obj.__class__.__name__ for obj in self._stack])
 
+  # visiting functions
+
   @stacked
   def visit_Unit(self, code):
     for index, child in enumerate(code):
@@ -103,9 +105,18 @@ class Visitor(instructions.Visitor):
 
   @stacked
   def visit_FunctionCall(self, code):
-    for index, child in enumerate(code):
+    for index, arg in enumerate(code.arguments):
       self.child = index
-      child.accept(self)
+      arg.accept(self)
+
+  @stacked
+  def visit_MethodCall(self, code):
+    code.obj.accept(self)
+    code.method.accept(self)
+    for index, arg in enumerate(code.arguments):
+      self.child = index
+      arg.accept(self)
+
 
   @stacked
   def visit_SimpleVariable(self, code): pass
@@ -119,6 +130,7 @@ class Visitor(instructions.Visitor):
 
   @stacked
   def visit_IfStatement(self, cond):
+    cond.expression.accept(self)
     for index, stmt in enumerate(cond.true_clause):
       self.child = index
       stmt.accept(self)
@@ -152,14 +164,6 @@ class Visitor(instructions.Visitor):
     stmt.expression.accept(self)
 
   @stacked
-  def visit_MethodCall(self, stmt):
-    stmt.obj.accept(self)
-    stmt.method.accept(self)
-    for index, arg in enumerate(stmt.arguments):
-      self.child = index
-      arg.accept(self)
-
-  @stacked
   def visit_Object(self, obj):
     obj.type.accept(self)
 
@@ -186,14 +190,61 @@ class Visitor(instructions.Visitor):
     type.type.accept(self)
 
   def visit_AtomLiteral(self, literal): pass
-
-  def visit_IntegerLiteral(self, stmt): pass
+  def visit_IntegerLiteral(self, literal): pass
+  def visit_FloatLiteral(self, literal): pass
 
   @stacked
   def visit_ObjectProperty(self, prop):
     prop.obj.accept(self)
     prop.prop.accept(self)
     prop.type.accept(self)
+
+  @stacked
+  def visit_Not(self, op):
+    op.operand.accept(self)
+
+  @stacked
+  def visit_And(self, op):       self.visit_BinOp(op)
+
+  @stacked
+  def visit_Or(self, op):        self.visit_BinOp(op)
+
+  @stacked
+  def visit_Equals(self, op):    self.visit_BinOp(op)
+
+  @stacked
+  def visit_NotEquals(self, op): self.visit_BinOp(op)
+
+  @stacked
+  def visit_LT(self, op):        self.visit_BinOp(op)
+
+  @stacked
+  def visit_LTEQ(self, op):      self.visit_BinOp(op)
+
+  @stacked
+  def visit_GT(self, op):        self.visit_BinOp(op)
+
+  @stacked
+  def visit_GTEQ(self, op):      self.visit_BinOp(op)
+
+  @stacked
+  def visit_Plus(self, op):      self.visit_BinOp(op)
+
+  @stacked
+  def visit_Minus(self, op):     self.visit_BinOp(op)
+
+  @stacked
+  def visit_Mult(self, op):      self.visit_BinOp(op)
+
+  @stacked
+  def visit_Div(self, op):       self.visit_BinOp(op)
+
+  @stacked
+  def visit_Modulo(self, op):    self.visit_BinOp(op)
+
+  def visit_BinOp(self, op):
+    op.left.accept(self)
+    op.right.accept(self)
 
   @stacked
   def visit_Plus(self, stmt):
@@ -229,12 +280,15 @@ class Dumper(Visitor):
   """
   Base-class for dumpers that simply dump out a CodeCanvas as a string.
   """
+  @stacked
   def visit_Unit(self, code):
     return "".join([child.accept(self) for child in code])
 
+  @stacked
   def visit_Module(self, code):
     return "".join([child.accept(self) for child in code])
 
+  @stacked
   def visit_Section(self, code):
     return "\n".join([child.accept(self) for child in code])
 
