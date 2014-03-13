@@ -2,7 +2,8 @@
 # language emitter implementation
 # author: Christophe VG
 
-from util.visitor import stacked
+from util.visitor  import stacked
+from util.check    import isstring
 
 import codecanvas.language     as language
 import codecanvas.instructions as code
@@ -15,6 +16,24 @@ class RefType(code.Type):
   def __init__(self, type):
     super(RefType, self).__init__({})
     self.type = type
+
+class VariableDecl(code.Identified, code.Variable):
+  def __init__(self, id, type):
+    if isstring(id): id = code.Identifier(id)
+    assert isinstance(id,   code.Identifier)
+    assert isinstance(type, code.Type)
+    super(VariableDecl, self).__init__({"id":id, "type":type})
+    self.id   = id
+    self.type = type
+
+class Deref(code.Expression):
+  def __init__(self, pointer):
+    self.pointer = pointer
+
+class Cast(code.Expression):
+  def __init__(self, to, expression):
+    self.to         = to
+    self.expression = expression
 
 class Emitter(object):
   def __init__(self, platform=None):
@@ -124,6 +143,7 @@ class Transformer(language.Visitor):
 
     if isinstance(match.comp, code.Anything):
       # Anything is replaced by identifier to function that always returns true
+      self.prepare_matching_module()
       return code.Identifier("match_anything")
 
     # TODO: create nicer/functional names ;-)
@@ -131,8 +151,8 @@ class Transformer(language.Visitor):
     Transformer.matchers += 1
 
     function = code.Function(name, type=code.BooleanType(),
-                             params=[ code.Parameter("value",
-                                      match.expression.type) ])
+                             params=[ code.Parameter("in",
+                                      RefType(code.VoidType())) ])
 
     # map match.comp to BinOp
     expression = {
@@ -144,26 +164,19 @@ class Transformer(language.Visitor):
       "!=" : code.NotEquals
     }[match.comp.operator](code.SimpleVariable("value"), match.expression)
 
-    function.append(code.Return(expression))
-
-    unit = self.stack[0]
-    # make sure that the matching module exists, else create it and add standard
-    # match_anything function
-    if unit.find("matching") == None:
-      unit.append(structure.Module("matching"))
-      # add match_anything
-      match_anything = code.Function("match_anything", type=code.BooleanType(),
-                                     params=[ code.Parameter("value",
-                                              match.expression.type) ])\
-        .contains(code.Return(code.BooleanLiteral(True)))
-      unit.select("matching", "dec").append(
-        match_anything
-      )
-      unit.select("matching", "def").append(
-        code.Prototype.from_Function(match_anything)
-      )
+    function.append(
+      # example: conversion of void* to actual type: int value = *(int*)in;    
+      code.Assign(VariableDecl("value", match.expression.type),
+                  Deref(Cast(RefType(match.expression.type),
+                               code.SimpleVariable("in"))
+                         )
+                 ),
+      code.Return(expression)
+    )
 
     # add the matching function
+    self.prepare_matching_module()
+    unit = self.stack[0]
     unit.select("matching", "dec").append(function)
     unit.select("matching", "def").append(code.Prototype.from_Function(function))
 
@@ -172,6 +185,25 @@ class Transformer(language.Visitor):
 
     # replace old Match with Identifier
     return code.Identifier(name)
+
+  def prepare_matching_module(self):
+    unit = self.stack[0]
+    # make sure that the matching module exists, else create it and add standard
+    # match_anything function
+    if unit.find("matching") == None:
+      unit.append(structure.Module("matching"))
+      # add match_anything
+      match_anything = code.Function("match_anything", type=code.BooleanType(),
+                                     params=[ code.Parameter("value",
+                                                   RefType(code.VoidType()))]) \
+        .contains(code.Return(code.BooleanLiteral(True)))
+      unit.select("matching", "dec").append(
+        match_anything
+      )
+      unit.select("matching", "def").append(
+        code.Prototype.from_Function(match_anything)
+      )
+    
 
   def visit_MethodCall(self, call):
     """
@@ -323,7 +355,7 @@ class Dumper(language.Dumper):
 
   @stacked
   def visit_NamedType(self, type):
-    return type.name
+    return self.platform.type(type.name)
 
   @stacked
   def visit_VoidType(self, type):
@@ -485,6 +517,18 @@ class Dumper(language.Dumper):
   @stacked
   def visit_RefType(self, ref):
     return ref.type.accept(self) + "*"
+
+  @stacked
+  def visit_VariableDecl(self, decl):
+    return decl.type.accept(self) + " " + decl.name
+
+  @stacked
+  def visit_Deref(self, ref):
+    return "*" + ref.pointer.accept(self)
+
+  @stacked
+  def visit_Cast(self, cast):
+    return "(" + cast.to.accept(self) + ")" + cast.expression.accept(self)
 
   # general purpose child visiting
   def visit_children(self, parent, joiner="\n"):
