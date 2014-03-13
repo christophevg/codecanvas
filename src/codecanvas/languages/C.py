@@ -168,7 +168,7 @@ class Transformer(language.Visitor):
       # example: conversion of void* to actual type: int value = *(int*)in;    
       code.Assign(VariableDecl("value", match.expression.type),
                   Deref(Cast(RefType(match.expression.type),
-                               code.SimpleVariable("in"))
+                             code.SimpleVariable("in"))
                          )
                  ),
       code.Return(expression)

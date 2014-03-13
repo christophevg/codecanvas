@@ -232,7 +232,7 @@ class SimpleVariable(Identified, Variable):
   def __init__(self, id, info=None):
     if isstring(id): id = Identifier(id)
     assert isinstance(id, Identifier)
-    super(SimpleVariable, self).__init__({"id": id})
+    super(SimpleVariable, self).__init__({"id": id, "info": info})
     self.id   = id
     self.info = info
 
