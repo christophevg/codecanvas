@@ -62,7 +62,7 @@ bool match_anything(void* dummy) {
 // passed as void*
 // let's say that this matcher checks for 
 bool match_0(void* in) {
-  int value = *(int*)(in);
+  int value = *(int*)in;
   return value < 5;
 }
 
