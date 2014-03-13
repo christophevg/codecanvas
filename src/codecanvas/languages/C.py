@@ -10,6 +10,12 @@ import codecanvas.structure    as structure
 
 from codecanvas.platform import Platform
 
+# a few additional Code classes for C-specific things
+class RefType(code.Type):
+  def __init__(self, type):
+    super(RefType, self).__init__({})
+    self.type = type
+
 class Emitter(object):
   def __init__(self, platform=None):
     self.output = None
@@ -474,6 +480,11 @@ class Dumper(language.Dumper):
   @stacked
   def visit_Not(self, op):
     return "!" + op.operand.accept(self)
+
+  # C-specific extensions
+  @stacked
+  def visit_RefType(self, ref):
+    return ref.type.accept(self) + "*"
 
   # general purpose child visiting
   def visit_children(self, parent, joiner="\n"):
