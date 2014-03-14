@@ -1,0 +1,144 @@
+Emitted Code Optimizations
+
+---
+
+This document describes why certain pieces of generated code are generated the
+way they are by CodeCanvas' C emitter.
+
+---
+
+1. Matching
+
+Matching initially generated pretty nicely readable code with reusable functions
+like this:
+
+  typedef struct tuple_0_t {
+    time_t elem_0;
+    uint8_t* elem_1;
+    struct tuple_0_t* next;
+  } tuple_0_t;
+  
+  typedef bool(*matcher_t)(void*);
+
+  bool match_anything(void* value) {
+    return TRUE;
+  }
+
+  bool match_0(void* in) {
+    uint8_t value = *(uint8_t*)in;
+    return (value < now());
+  }
+
+  bool list_of_tuple_0s_contains(tuple_0_t* iter, matcher_t elem_0_matcher,
+                                                  matcher_t elem_1_matcher)
+  {
+    while(iter != NULL) {
+      if( elem_0_matcher((void*)&(iter->elem_0)) && 
+          elem_1_matcher((void*)&(iter->elem_1)) )
+      {
+        return TRUE;
+      }
+      iter = iter->next;
+    }
+    return FALSE;
+  }
+
+  // omitted: construct a list of tuple_0_t
+  
+  list_of_tuple_0s_contains(list, match_0, match_anything);
+
+Using function pointers to provide a generic way to perform matching, results
+in 2 function calls per item in the list, along with 2 casts per call.
+
+Because all this code is generated, it is possible to inline these calls, at the
+cost of more code, for each combination of matchers used.
+
+  typedef struct tuple_0_t {
+    time_t elem_0;
+    uint8_t* elem_1;
+    struct tuple_0_t* next;
+  } tuple_0_t;
+  
+  bool list_of_tuple_0s_contains_match_0_match_anything(tuple_0_t* iter) {
+    for(;iter != NULL; iter = iter->next) {
+      if(iter->elem_0 < now()) {
+        if(TRUE) {              // match_anything can be shortcut ;-)
+          return TRUE;
+        }
+      }
+    }
+    return FALSE;
+  }                                                   
+  
+  // omitted: construct a list of tuple_0_t
+  
+  list_of_tuple_0s_contains_match_0_match_anything(list);
+
+The results are almost astonishing:
+
+With optimization level 3:
+
+  gcc -O3 -funsigned-char -fpack-struct -fshort-enums -Wall \
+      -Wstrict-prototypes -std=gnu99 foo.c -o foo.out
+  ./foo.out
+  performing 3 iterations of 1000000000 loops
+  iteration 0:
+  while loop: 1.259299 seconds
+  for loop  : 1.257682 seconds
+  inlined   : 0.000003 seconds
+
+  iteration 1:
+  while loop: 1.257810 seconds
+  for loop  : 1.257409 seconds
+  inlined   : 0.000000 seconds
+
+  iteration 2:
+  while loop: 1.257447 seconds
+  for loop  : 1.258128 seconds
+  inlined   : 0.000006 seconds
+
+Maybe even more astonishing is opting for space optimization:
+
+  gcc -Os -funsigned-char -fpack-struct -fshort-enums -Wall \
+      -Wstrict-prototypes -std=gnu99 foo.c -o foo.out
+  ./foo.out
+  performing 3 iterations of 1000000000 loops
+  iteration 0:
+  while loop: 0.844651 seconds
+  for loop  : 0.839154 seconds
+  inlined   : 0.000002 seconds
+
+  iteration 1:
+  while loop: 0.925424 seconds
+  for loop  : 0.839150 seconds
+  inlined   : 0.000000 seconds
+
+  iteration 2:
+  while loop: 0.855096 seconds
+  for loop  : 0.838558 seconds
+  inlined   : 0.000001 seconds
+
+Even without optimization the results are clear:
+
+  gcc -O0 -funsigned-char -fpack-struct -fshort-enums -Wall \
+      -Wstrict-prototypes -std=gnu99 foo.c -o foo.out
+  ./foo.out
+  performing 3 iterations of 1000000000 loops
+  iteration 0:
+  while loop: 13.611733 seconds
+  for loop  : 13.263730 seconds
+  inlined   : 5.794245 seconds
+
+  iteration 1:
+  while loop: 13.616743 seconds
+  for loop  : 13.307401 seconds
+  inlined   : 5.799422 seconds
+
+  iteration 2:
+  while loop: 13.619680 seconds
+  for loop  : 13.306469 seconds
+  inlined   : 5.792109 seconds
+
+Conclusion: CodeCanvas C generator tries to inline as much code as possible,
+benefiting from the possibility to generate custom list manipulating functions
+for all combinations of matching criteria that are needed.
