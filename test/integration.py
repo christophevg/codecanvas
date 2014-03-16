@@ -84,7 +84,7 @@ printf("loop");
   def test_function_call_without_arguments(self):
     self.unit.select("test", "dec") \
       .append(code.FunctionCall("some_func"))
-    self.assertEqualToSource(self.unit, "some_func()")
+    self.assertEqualToSource(self.unit, "some_func();")
 
   def test_function_call_with_arguments(self):
     arguments = [ code.SimpleVariable("a"),
@@ -93,7 +93,7 @@ printf("loop");
                 ]
     self.unit.select("test", "dec") \
       .append(code.FunctionCall("some_func", arguments))
-    self.assertEqualToSource(self.unit, "some_func(a, b, FALSE)")
+    self.assertEqualToSource(self.unit, "some_func(a, b, FALSE);")
 
   def test_single_line_comment(self):
     tree = code.Comment("hello world")
