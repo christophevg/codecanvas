@@ -362,6 +362,8 @@ class ByteLiteral(Literal):
     self.value = value
   def __repr__(self):
     return "0x%02x" % self.value
+  def as_label(self):
+    return "0x%02x" % self.value
   
 class FloatLiteral(Literal):
   def __init__(self, value):
@@ -447,6 +449,7 @@ class LongType(Type):
 
 class Match(Expression):
   def __init__(self, comp, expression=None):
+    if isstring(comp): comp = Comparator(comp)
     assert isinstance(comp, Comparator), \
            "Expected Comparator but got " + comp.__class__.__module__ + ":" + comp.__class__.__name__
     assert expression == None or isinstance(expression, Expression)

@@ -147,7 +147,10 @@ class Transformer(language.Visitor):
     # first let the standard visitor visit all lower-level dependencies
     super(Transformer, self).visit_MethodCall(call)
 
-    if isinstance(call.obj.type, code.ManyType): return self.visit_ListCall(call)
+    try:
+      if isinstance(call.obj.type, code.ManyType): return self.visit_ListCall(call)
+    except Exception, e:
+      print e
 
     if not isinstance(call.obj.type, code.ObjectType):
       raise NotImplementedError, "only list- and object-types are supported"
@@ -169,24 +172,34 @@ class Transformer(language.Visitor):
     }[str(call.obj.type.type.__class__.__name__)]() 
 
     # arguments to the original methodcall can be matchers, those should be 
-    # inlined, remaining arguments are part of the arguments
-    arguments = [call.obj]
+    # inlined, remaining arguments are normally literals that should be
+    # converted to matchers
+    # TODO: make this generic ;-(
     matchers  = []
     for arg in call.arguments:
       if isinstance(arg, code.ListLiteral):
         for subarg in arg:
-          if isinstance(subarg, code.Match): matchers.append(subarg)
-          else:                              arguments.append(subarg)
+          if isinstance(subarg, code.ListLiteral):
+            for subsubarg in subarg:
+              if not isinstance(subsubarg, code.Match):
+                subsubarg = code.Match("==", subsubarg)
+              matchers.append(subsubarg)
+          else :
+            if not isinstance(subarg, code.Match): subarg = code.Match("==", subarg)
+            matchers.append(subarg)
           
       else:
-        if isinstance(arg, code.Match): matchers.append(arg)
-        else:                           arguments.append(arg)
+        if not isinstance(arg, code.Match): arg = code.Match("==", arg)
+        matchers.append(arg)
 
     # create list manipulating customized function
     [function, byref] = \
       self.create_list_manipulator(type, call.method.name, matchers)
 
-    if byref: arguments[0] = AddressOf(arguments[0])
+    if byref: 
+      arguments = [ AddressOf(call.obj) ]
+    else:
+      arguments = [ call.obj ]
 
     # create FunctionCall with object as first argument
     # and replace methodcall by functioncall
