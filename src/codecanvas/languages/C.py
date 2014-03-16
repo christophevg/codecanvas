@@ -204,7 +204,7 @@ class Transformer(language.Visitor):
 
     # create FunctionCall with object as first argument
     # and replace methodcall by functioncall
-    return code.FunctionCall(function.name, arguments)
+    return code.FunctionCall(function.name, arguments, type=function.type)
 
   def create_list_manipulator(self, type, method, matchers):
     """
