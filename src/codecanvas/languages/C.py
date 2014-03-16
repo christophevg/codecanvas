@@ -107,6 +107,26 @@ class Transformer(language.Visitor):
     Transformer.tuples[repr(tuple)] = named_type
     return named_type
 
+  @stacked
+  def visit_ListLiteral(self, list):
+    """
+    If one of out items is a ListLiteral, import it, they will be collapsed
+    anyway and then we don't have issues with arg counts.
+    ISSUE: this is caused by the convertion of Atoms to ListLiterals :-(
+    """
+    super(Transformer, self).visit_ListLiteral(list)
+    
+    children = []
+    for item in list.children:
+      if isinstance(item, code.ListLiteral):
+        for subitem in item.children:
+          children.append(subitem)
+      else:
+        children.append(item)
+    
+    # FIXME: this is to intrusive ;-)
+    list.floating = children
+
   atoms = []
   @stacked
   def visit_AtomLiteral(self, atom):
@@ -149,10 +169,11 @@ class Transformer(language.Visitor):
 
     if isinstance(call.obj.type, code.ManyType): return self.visit_ListCall(call)
 
+    # non-list methodcalls are turned into 
     if not isinstance(call.obj.type, code.ObjectType):
       raise NotImplementedError, "only list- and object-types are supported"
 
-    name = call.obj.type.name + "s_" + call.method.name
+    name = call.obj.type.name + "_" + call.method.name
     # create FunctionCall with object as first argument
     function = code.FunctionCall(name, [call.obj])
     for arg in call.arguments:
@@ -212,7 +233,6 @@ class Transformer(language.Visitor):
     """
     # determine type of list
     type_name = {
-      "ByteType"  : lambda: "byte",
       "NamedType" : lambda: type.type.name
     }[str(type.type.__class__.__name__)]()
 
@@ -236,16 +256,18 @@ class Transformer(language.Visitor):
 
     params = [ code.Parameter("iter", type) ]
 
+    # construct loop body
+    body = code.WhileDo(code.NotEquals(code.SimpleVariable("iter"), Null()))
+
     # turn matchers into list of conditions
     [condition, suffix] = self.transform_matchers_into_condition(matchers)
     name += suffix
-
-    # construct loop body
-    body = code.WhileDo(code.NotEquals(code.SimpleVariable("iter"), Null())) \
-               .contains(code.IfStatement(condition,
-                          [ code.Return(code.BooleanLiteral(True)) ]),
-                        code.Assign("iter",
-                                    code.ObjectProperty("iter", "next")))
+    body.append(code.IfStatement(condition,
+                  [ code.Return(code.BooleanLiteral(True)) ]
+                ),
+                code.Assign("iter",
+                            code.ObjectProperty("iter", "next"))
+    )
     # create function and return it
     return (self.stack[0].find("lists").select("dec").append(
       code.Function(name, type=code.BooleanType(), params=params)
@@ -527,7 +549,9 @@ class Dumper(language.Dumper):
 
   @stacked
   def visit_ListLiteral(self, literal):
-    return ", ".join([item.accept(self) for item in literal.children])
+    # strategy: listliterals are passes as varargs, with the number of args as
+    # a first argument
+    return str(len(literal.children)) + ", " + ", ".join([item.accept(self) for item in literal.children])
 
   @stacked
   def visit_ObjectProperty(self, prop):
