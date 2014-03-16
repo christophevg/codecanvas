@@ -162,41 +162,45 @@ class Transformer(language.Visitor):
     return function
 
   def visit_ListCall(self, call):
-    # determine type of list
-    type = {
-      "ByteType"  : lambda: "byte",
-      "NamedType" : lambda: call.obj.type.type.name
-    }[str(call.obj.type.type.__class__.__name__)]() 
-
     # arguments to the original methodcall can be matchers, those should be 
     # inlined, remaining arguments are normally literals that should be
     # converted to matchers
     # TODO: make this generic ;-(
     matchers  = []
+    arguments = [call.obj]
     for arg in call.arguments:
       if isinstance(arg, code.ListLiteral):
         for subarg in arg:
           if isinstance(subarg, code.ListLiteral):
             for subsubarg in subarg:
-              if not isinstance(subsubarg, code.Match):
-                subsubarg = code.Match("==", subsubarg)
-              matchers.append(subsubarg)
+              if isinstance(subsubarg, code.Match):
+                matchers.append(subsubarg)
+              elif isinstance(subsubarg, code.Literal):
+                matchers.append(code.Match("==", subsubarg))
+              else:
+                arguments.push(subsubarg)
+
           else :
-            if not isinstance(subarg, code.Match): subarg = code.Match("==", subarg)
-            matchers.append(subarg)
+            if isinstance(subarg, code.Match):
+              matchers.append(subarg)
+            elif isinstance(subarg, code.Literal):
+              matchers.append(code.Match("==", subarg))
+            else:
+              arguments.append(subarg)
           
       else:
-        if not isinstance(arg, code.Match): arg = code.Match("==", arg)
-        matchers.append(arg)
+        if isinstance(arg, code.Match):
+          matchers.append(arg)
+        elif isinstance(arg, code.Literal):
+          matchers.append(code.Match("==", arg))
+        else:
+          arguments.append(arg)
 
     # create list manipulating customized function
     [function, byref] = \
-      self.create_list_manipulator(type, call.method.name, matchers)
+      self.create_list_manipulator(call.obj.type, call.method.name, matchers)
 
-    if byref: 
-      arguments = [ AddressOf(call.obj) ]
-    else:
-      arguments = [ call.obj ]
+    if byref: arguments[0] = AddressOf(arguments[0])
 
     # create FunctionCall with object as first argument
     # and replace methodcall by functioncall
@@ -206,12 +210,18 @@ class Transformer(language.Visitor):
     """
     Dispatcher for the creation of list-manipulating functions.
     """
+    # determine type of list
+    type_name = {
+      "ByteType"  : lambda: "byte",
+      "NamedType" : lambda: type.type.name
+    }[str(type.type.__class__.__name__)]()
+
     self.prepare_lists_module()
     return {
       "contains": self.create_list_contains,
       "push"    : self.create_list_push,
       "remove"  : self.create_list_remove
-    }[method](type, matchers)
+    }[method](type, type_name, matchers)
 
   def prepare_lists_module(self):
     unit = self.stack[0]
@@ -219,12 +229,12 @@ class Transformer(language.Visitor):
     if unit.find("lists") == None:
       unit.append(structure.Module("lists"))
 
-  def create_list_contains(self, type, matchers):
-    name     = "list_of_" + type + "s_contains"
+  def create_list_contains(self, type, type_name, matchers):
+    name     = "list_of_" + type_name + "s_contains"
     function = self.stack[0].find(name)
     if not function is None: return function
 
-    params = [ code.Parameter("iter", code.ManyType(code.NamedType(type))) ]
+    params = [ code.Parameter("iter", type) ]
 
     # turn matchers into list of conditions
     [condition, suffix] = self.transform_matchers_into_condition(matchers)
@@ -244,13 +254,13 @@ class Transformer(language.Visitor):
           ).tag(name)
     ), False)
 
-  def create_list_push(self, type, matchers):
-    name     = "list_of_" + type + "s_push"
+  def create_list_push(self, type, type_name, matchers):
+    name     = "list_of_" + type_name + "s_push"
     function = self.stack[0].find(name)
     if not function is None: return function
     
-    params = [ code.Parameter("list", code.ManyType(RefType(code.NamedType(type)))),
-               code.Parameter("item", RefType(code.NamedType(type)))]
+    # pushing accepts the type of the list's content as parameter(d)
+    params = [ code.Parameter("list", RefType(type)) ]
 
     return (self.stack[0].find("lists").select("dec").append(
       code.Function(name, type=code.VoidType(), params=params)
@@ -262,12 +272,12 @@ class Transformer(language.Visitor):
           ).tag(name)
     ), True)
 
-  def create_list_remove(self, type, matchers):
-    name   = "list_of_" + type + "s_remove"
+  def create_list_remove(self, type, type_name, matchers):
+    name   = "list_of_" + type_name + "s_remove"
     function = self.stack[0].find(name)
     if not function is None: return function
 
-    params = [ code.Parameter("iter", code.ManyType(RefType(code.NamedType(type)))) ]
+    params = [ code.Parameter("iter", RefType(type)) ]
 
     # turn matchers into list of conditions
     [condition, suffix] = self.transform_matchers_into_condition(matchers)
@@ -298,9 +308,9 @@ class Transformer(language.Visitor):
       code.Function(name, type=code.IntegerType(), params=params)
           .contains(code.Assign(VariableDecl("removed", code.IntegerType()),
                                 code.IntegerLiteral(0)),
-                    code.Assign(VariableDecl("iter", RefType(code.NamedType(type))),
+                    code.Assign(VariableDecl("iter", RefType(type.type)),
                                 Deref(code.SimpleVariable("list"))),
-                    code.Assign(VariableDecl("prev", RefType(code.NamedType(type))),
+                    code.Assign(VariableDecl("prev", RefType(type.type)),
                                 Null()),
                     body,
                     code.Return(code.SimpleVariable("removed"))
