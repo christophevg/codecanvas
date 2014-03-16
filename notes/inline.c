@@ -167,7 +167,16 @@ int list_of_tuple_0s_remove_inlined_match_6_match_anything(tuple_0_t** list) {
   return removed;
 }
 
-
+bool list_of_bytes_contains_match_eq_0x00_match_eq_0x02(uint8_t *list,
+                                                        uint16_t length)
+{
+  for(;length>1;length--, list++) {
+    if( *list == 0x00 && *(list+1) == 0x02 ) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
 
 int main(void) {
   node_t* node = nodes_create();
@@ -217,8 +226,8 @@ int main(void) {
   int  l;
   long i;
   
-#define iterations 3
-#define loops      1000000000
+#define iterations 1
+#define loops      1000000
 
   clock_t tic, toc;
   
@@ -256,6 +265,31 @@ int main(void) {
   assert(list_of_tuple_0s_remove(&node->queue, match_5, match_anything) == 0);
   assert(list_of_tuple_0s_remove_inlined_match_6_match_anything(&node->queue) == 1);
   assert(list_of_tuple_0s_remove_inlined_match_6_match_anything(&node->queue) == 0);
+
+  // list of bytes
+  
+  uint8_t* list = malloc(5 * sizeof(uint8_t));
+  list[0] = 0x15;
+  list[1] = 0x20;
+  list[2] = 0x00;
+  list[3] = 0x02;
+  list[4] = 0x12;
+
+  assert(list_of_bytes_contains_match_eq_0x00_match_eq_0x02(list, 5));
+
+  list[2] = 0x13;
+  list[3] = 0x14;
+
+  assert(list_of_bytes_contains_match_eq_0x00_match_eq_0x02(list, 5) == FALSE);
+
+  list[4] = 0x00;
+
+  assert(list_of_bytes_contains_match_eq_0x00_match_eq_0x02(list, 5) == FALSE);
+
+  list[3] = 0x00;
+  list[4] = 0x02;
+
+  assert(list_of_bytes_contains_match_eq_0x00_match_eq_0x02(list, 5));
 
   return EXIT_SUCCESS;
 }
