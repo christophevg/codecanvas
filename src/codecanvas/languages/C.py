@@ -147,10 +147,7 @@ class Transformer(language.Visitor):
     # first let the standard visitor visit all lower-level dependencies
     super(Transformer, self).visit_MethodCall(call)
 
-    try:
-      if isinstance(call.obj.type, code.ManyType): return self.visit_ListCall(call)
-    except Exception, e:
-      print e
+    if isinstance(call.obj.type, code.ManyType): return self.visit_ListCall(call)
 
     if not isinstance(call.obj.type, code.ObjectType):
       raise NotImplementedError, "only list- and object-types are supported"
