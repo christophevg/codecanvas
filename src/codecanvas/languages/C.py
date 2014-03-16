@@ -552,7 +552,8 @@ class Dumper(language.Dumper):
   @stacked
   def visit_FunctionCall(self, call):
     return call.function.name + "(" + \
-           ", ".join([arg.accept(self) for arg in call.arguments])  + ")"
+           ", ".join([arg.accept(self) for arg in call.arguments])  + ")" + \
+           (";" if isinstance(call.type, code.VoidType) else "")
 
   @stacked
   def visit_SimpleVariable(self, var):
