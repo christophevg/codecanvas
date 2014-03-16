@@ -109,12 +109,11 @@ bool list_of_tuple_0s_contains_with_for(tuple_0_t* iter, matcher_t elem_0_matche
 }                                                   
 
 bool list_of_tuple_0s_contains_inlined_match_5_match_anything(tuple_0_t* iter) {
-  for(;iter != NULL; iter = iter->next) {
-    if(iter->elem_0 == 5) {
-      if(TRUE) {              // match_anything ;-)
-        return TRUE;
-      }
+  while(iter != NULL) {
+    if( iter->elem_0 == 5) {
+      return TRUE;
     }
+    iter = iter->next;
   }
   return FALSE;
 }                                                   
@@ -145,6 +144,31 @@ int list_of_tuple_0s_remove(tuple_0_t** list, matcher_t elem_0_matcher,
   return removed;
 }
 
+int list_of_tuple_0s_remove_inlined_match_6_match_anything(tuple_0_t** list) {
+  int removed = 0;  // count the number of removed nodes
+
+  tuple_0_t* iter = *list;  // iterator through list
+  tuple_0_t* prev = NULL;  // cached reference to previous node
+  
+  while(iter != NULL) {
+    if( iter->elem_0 == 6 && TRUE ) {
+      if(prev == NULL) {   // we need to remove the head
+        *list = iter->next;
+      } else {
+        prev->next = iter->next;
+      }
+      free(iter);
+      removed++;
+    }
+  	prev = iter;
+    iter = iter->next;
+  }
+
+  return removed;
+}
+
+
+
 int main(void) {
   node_t* node = nodes_create();
 
@@ -164,16 +188,26 @@ int main(void) {
   }
 
   // add one item with value 5 at the end
-  tuple_0_t* item = tuple_0s_create();
-  item->elem_0 = 5;
-  item->elem_1 = malloc(5 * sizeof(uint8_t));
-  item->elem_1[0] = 223;
-  item->elem_1[1] = 224;
-  item->elem_1[2] = 225;
-  item->elem_1[3] = 226;
-  item->elem_1[3] = '\0';
+  tuple_0_t* item5 = tuple_0s_create();
+  item5->elem_0 = 5;
+  item5->elem_1 = malloc(5 * sizeof(uint8_t));
+  item5->elem_1[0] = 223;
+  item5->elem_1[1] = 224;
+  item5->elem_1[2] = 225;
+  item5->elem_1[3] = 226;
+  item5->elem_1[4] = '\0';
 
-  list_of_tuple_0s_push(&node->queue, item);
+  list_of_tuple_0s_push(&node->queue, item5);
+
+  // add one item with value 5 at the end
+  tuple_0_t* item6 = tuple_0s_create();
+  item6->elem_0 = 6;
+  item6->elem_1 = malloc(3 * sizeof(uint8_t));
+  item6->elem_1[0] = 23;
+  item6->elem_1[1] = 24;
+  item6->elem_1[2] = '\0';
+
+  list_of_tuple_0s_push(&node->queue, item6);
   
   assert(list_of_tuple_0s_contains(node->queue, match_5, match_anything));
   assert(list_of_tuple_0s_contains_with_for(node->queue, match_5, match_anything));
@@ -217,6 +251,11 @@ int main(void) {
 
     printf("\n");
   }
-  
+
+  assert(list_of_tuple_0s_remove(&node->queue, match_5, match_anything) == 1);
+  assert(list_of_tuple_0s_remove(&node->queue, match_5, match_anything) == 0);
+  assert(list_of_tuple_0s_remove_inlined_match_6_match_anything(&node->queue) == 1);
+  assert(list_of_tuple_0s_remove_inlined_match_6_match_anything(&node->queue) == 0);
+
   return EXIT_SUCCESS;
 }

@@ -26,9 +26,13 @@ class VariableDecl(code.Identified, code.Variable):
     self.id   = id
     self.type = type
 
-class Deref(code.Expression):
+class Deref(code.Variable):
   def __init__(self, pointer):
     self.pointer = pointer
+
+class AddressOf(code.Variable):
+  def __init__(self, variable):
+    self.variable = variable
 
 class Cast(code.Expression):
   def __init__(self, to, expression):
@@ -53,6 +57,8 @@ class Emitter(object):
     # next to dump it to files
     if self.output: unit.accept(Builder(self.output, platform=self.platform))
     else:           return unit.accept(Dumper(platform=self.platform))
+
+class Null(code.Expression): pass
 
 class Transformer(language.Visitor):
   """
@@ -128,83 +134,10 @@ class Transformer(language.Visitor):
     if len(function.children) < 1:
       if len(self.stack) > 1:
         self.stack[-2].remove_child(self.child)
-
+  
     super(Transformer, self).visit_Function(function)
 
-  # matching
-
-  matchers = 0
   @stacked
-  def visit_Match(self, match):
-    """
-    The match is replace with an identifier pointing to a function that contains
-    the actual matching.
-    """
-
-    if isinstance(match.comp, code.Anything):
-      # Anything is replaced by identifier to function that always returns true
-      self.prepare_matching_module()
-      return code.Identifier("match_anything")
-
-    # TODO: create nicer/functional names ;-)
-    name = "match_" + str(Transformer.matchers)
-    Transformer.matchers += 1
-
-    function = code.Function(name, type=code.BooleanType(),
-                             params=[ code.Parameter("in",
-                                      RefType(code.VoidType())) ])
-
-    # map match.comp to BinOp
-    expression = {
-      "<"  : code.LT,
-      ">"  : code.GT,
-      "<=" : code.LTEQ,
-      ">=" : code.GTEQ,
-      "==" : code.Equals,
-      "!=" : code.NotEquals
-    }[match.comp.operator](code.SimpleVariable("value"), match.expression)
-
-    function.append(
-      # example: conversion of void* to actual type: int value = *(int*)in;    
-      code.Assign(VariableDecl("value", match.expression.type),
-                  Deref(Cast(RefType(match.expression.type),
-                             code.SimpleVariable("in"))
-                         )
-                 ),
-      code.Return(expression)
-    )
-
-    # add the matching function
-    self.prepare_matching_module()
-    unit = self.stack[0]
-    unit.select("matching", "dec").append(function)
-    unit.select("matching", "def").append(code.Prototype.from_Function(function))
-
-    # and include an import to the module that now uses matching
-    self.stack[1].select("def").append(code.Import("matching"))
-
-    # replace old Match with Identifier
-    return code.Identifier(name)
-
-  def prepare_matching_module(self):
-    unit = self.stack[0]
-    # make sure that the matching module exists, else create it and add standard
-    # match_anything function
-    if unit.find("matching") == None:
-      unit.append(structure.Module("matching"))
-      # add match_anything
-      match_anything = code.Function("match_anything", type=code.BooleanType(),
-                                     params=[ code.Parameter("value",
-                                                   RefType(code.VoidType()))]) \
-        .contains(code.Return(code.BooleanLiteral(True)))
-      unit.select("matching", "dec").append(
-        match_anything
-      )
-      unit.select("matching", "def").append(
-        code.Prototype.from_Function(match_anything)
-      )
-    
-
   def visit_MethodCall(self, call):
     """
     MethodCalls are transformed into FunctionCalls. If the object on which the
@@ -229,23 +162,169 @@ class Transformer(language.Visitor):
     return function
 
   def visit_ListCall(self, call):
-    """
-    Managing lists is more generic than method calls, but the typing is hard
-    to make generic. Therefore for every listed type, manipulating functions are
-    generated as needed.
-    """
-    name = "list_of_" + {
+    # determine type of list
+    type = {
       "ByteType"  : lambda: "byte",
       "NamedType" : lambda: call.obj.type.type.name
-    }[str(call.obj.type.type.__class__.__name__)]() + "s_" + call.method.name
+    }[str(call.obj.type.type.__class__.__name__)]() 
+
+    # arguments to the original methodcall can be matchers, those should be 
+    # inlined, remaining arguments are part of the arguments
+    arguments = [call.obj]
+    matchers  = []
+    for arg in call.arguments:
+      if isinstance(arg, code.ListLiteral):
+        for subarg in arg:
+          if isinstance(subarg, code.Match): matchers.append(subarg)
+          else:                              arguments.append(subarg)
+          
+      else:
+        if isinstance(arg, code.Match): matchers.append(arg)
+        else:                           arguments.append(arg)
+
+    # create list manipulating customized function
+    [function, byref] = \
+      self.create_list_manipulator(type, call.method.name, matchers)
+
+    if byref: arguments[0] = AddressOf(arguments[0])
 
     # create FunctionCall with object as first argument
-    function = code.FunctionCall(name, [call.obj])
-    for arg in call.arguments:
-      function.arguments.append(arg)
+    # and replace methodcall by functioncall
+    return code.FunctionCall(function.name, arguments)
 
-    # replace methodcall by functioncall
-    return function
+  def create_list_manipulator(self, type, method, matchers):
+    """
+    Dispatcher for the creation of list-manipulating functions.
+    """
+    self.prepare_lists_module()
+    return {
+      "contains": self.create_list_contains,
+      "push"    : self.create_list_push,
+      "remove"  : self.create_list_remove
+    }[method](type, matchers)
+
+  def prepare_lists_module(self):
+    unit = self.stack[0]
+    # make sure that the listing module exists, else create it
+    if unit.find("lists") == None:
+      unit.append(structure.Module("lists"))
+
+  def create_list_contains(self, type, matchers):
+    name     = "list_of_" + type + "s_contains"
+    function = self.stack[0].find(name)
+    if not function is None: return function
+
+    params = [ code.Parameter("iter", code.ManyType(code.NamedType(type))) ]
+
+    # turn matchers into list of conditions
+    [condition, suffix] = self.transform_matchers_into_condition(matchers)
+    name += suffix
+
+    # construct loop body
+    body = code.WhileDo(code.NotEquals(code.SimpleVariable("iter"), Null())) \
+               .contains(code.IfStatement(condition,
+                          [ code.Return(code.BooleanLiteral(True)) ]),
+                        code.Assign("iter",
+                                    code.ObjectProperty("iter", "next")))
+    # create function and return it
+    return (self.stack[0].find("lists").select("dec").append(
+      code.Function(name, type=code.BooleanType(), params=params)
+          .contains(body,
+                    code.Return(code.BooleanLiteral(False))
+          ).tag(name)
+    ), False)
+
+  def create_list_push(self, type, matchers):
+    name     = "list_of_" + type + "s_push"
+    function = self.stack[0].find(name)
+    if not function is None: return function
+    
+    params = [ code.Parameter("list", code.ManyType(RefType(code.NamedType(type)))),
+               code.Parameter("item", RefType(code.NamedType(type)))]
+
+    return (self.stack[0].find("lists").select("dec").append(
+      code.Function(name, type=code.VoidType(), params=params)
+          .contains(
+            code.Assign(code.ObjectProperty("item", "next"),
+                        Deref(code.SimpleVariable("list"))),
+            code.Assign(Deref(code.SimpleVariable("list")),
+                        code.SimpleVariable("item"))
+          ).tag(name)
+    ), True)
+
+  def create_list_remove(self, type, matchers):
+    name   = "list_of_" + type + "s_remove"
+    function = self.stack[0].find(name)
+    if not function is None: return function
+
+    params = [ code.Parameter("iter", code.ManyType(RefType(code.NamedType(type)))) ]
+
+    # turn matchers into list of conditions
+    [condition, suffix] = self.transform_matchers_into_condition(matchers)
+    name += suffix
+
+    # construct body
+    body = code.WhileDo(code.NotEquals(code.SimpleVariable("iter"), Null())) \
+               .contains(
+                 code.IfStatement(condition, [
+                   code.IfStatement(code.Equals(code.SimpleVariable("prev"),
+                                                Null()),
+                     [ code.Assign(Deref(code.SimpleVariable("list")),
+                                   code.ObjectProperty("iter", "next")) ],
+                     [ code.Assign(code.ObjectProperty("prev", "next"),
+                                   code.ObjectProperty("iter", "next")) ]
+                   ),
+                   code.FunctionCall("free", [ code.SimpleVariable("iter")]),
+                   code.Inc(code.SimpleVariable("removed"))
+                 ]),
+                 code.Assign(code.SimpleVariable("prev"),
+                             code.SimpleVariable("iter")),
+                 code.Assign(code.SimpleVariable("iter"),
+                             code.ObjectProperty("iter", "next"))
+               )
+  
+    # create function and return it
+    return (self.stack[0].find("lists").select("dec").append(
+      code.Function(name, type=code.IntegerType(), params=params)
+          .contains(code.Assign(VariableDecl("removed", code.IntegerType()),
+                                code.IntegerLiteral(0)),
+                    code.Assign(VariableDecl("iter", RefType(code.NamedType(type))),
+                                Deref(code.SimpleVariable("list"))),
+                    code.Assign(VariableDecl("prev", RefType(code.NamedType(type))),
+                                Null()),
+                    body,
+                    code.Return(code.SimpleVariable("removed"))
+          )
+    ), True)
+
+  def transform_matchers_into_condition(self, matchers):
+    suffix = ""
+    conditions = []
+    for idx, matcher in enumerate(matchers):
+      if not isinstance(matcher, code.Anything) and matcher.comp.operator != "*":
+        suffix += "_match_" + matcher.as_label()
+        conditions.append( {
+          "<"  : code.LT,
+          ">"  : code.GT,
+          "<=" : code.LTEQ,
+          ">=" : code.GTEQ,
+          "==" : code.Equals,
+          "!=" : code.NotEquals
+        }[matcher.comp.operator](code.ObjectProperty("iter", "elem_"+str(idx)),
+                                 matcher.expression)
+        )
+    # join conditions together with AND (TODO: should have factory method)
+    if len(conditions) < 1:
+      conditions = code.BooleanLiteral(True)
+    elif len(conditions) < 2:
+      conditions = conditions.pop(0)
+    else:
+      test = code.And(conditions.pop(0), conditions.pop(0))
+      while len(conditions) > 0:
+        test = code.And(test, conditions.pop(0))
+      conditions = test
+    
+    return (conditions, suffix)
 
 class Generic(Platform):
   def type(self, type):
@@ -529,6 +608,14 @@ class Dumper(language.Dumper):
   @stacked
   def visit_Cast(self, cast):
     return "(" + cast.to.accept(self) + ")" + cast.expression.accept(self)
+
+  @stacked
+  def visit_Null(self, null):
+    return "NULL"
+
+  @stacked
+  def visit_AddressOf(self, address):
+    return "&" + address.variable.accept(self)
 
   # general purpose child visiting
   def visit_children(self, parent, joiner="\n"):

@@ -159,6 +159,7 @@ class Comment(ImmutUnOp):
 @novisiting
 class VarExpOp(Statement):
   def __init__(self, operand, expression):
+    if isstring(operand): operand = SimpleVariable(operand)
     assert isinstance(operand, Variable)
     assert isinstance(expression, Expression)
     Statement.__init__(self, {"operand": operand, "expression": expression})
@@ -222,7 +223,9 @@ class Property(WithoutChildModification, Code):
 # Expressions
 
 @novisiting
-class Expression(Code): pass
+class Expression(Code):
+  def as_label(self):
+    return str(self)
 
 @novisiting
 class Variable(Expression): pass
@@ -237,9 +240,10 @@ class SimpleVariable(Identified, Variable):
     self.info = info
 
 class Object(Identified, Variable):
-  def __init__(self, id, type):
+  def __init__(self, id, type=None):
     if isstring(id): id = Identifier(id)
     assert isinstance(id, Identifier)
+    if type is None: type = VoidType()
     assert isinstance(type, Type)
     super(Object, self).__init__({"id": id, "type": type})
     self.id   = id
@@ -248,9 +252,12 @@ class Object(Identified, Variable):
     return "Object(" + repr(self.id) + ":" + repr(self.type) + ")"
 
 class ObjectProperty(Variable):
-  def __init__(self, obj, prop, type):
+  def __init__(self, obj, prop, type=None):
+    if isstring(obj): obj = Object(obj)
     assert isinstance(obj, Object), "got " + obj.__class__.__name__
+    if isstring(prop): prop = Identifier(prop)
     assert isinstance(prop, Identifier)
+    if type is None: type = VoidType()
     assert isinstance(type, Type)
     super(ObjectProperty, self).__init__({"obj" : obj, "prop": prop})
     self.obj  = obj
@@ -263,6 +270,7 @@ class ObjectProperty(Variable):
 class UnOp(Expression):
   def __init__(self, operand):
     assert isinstance(operand, Expression)
+    super(UnOp, self).__init__({})
     self.operand = operand
 
 class Not(UnOp): pass
@@ -307,6 +315,8 @@ class FunctionCall(Call):
     super(FunctionCall, self).__init__({"function": function}, arguments)
     self.function  = function
     self.type      = type
+  def as_label(self):
+    return self.function.name
 
 class MethodCall(Call):
   def __init__(self, obj, method, arguments=[]):
@@ -440,15 +450,27 @@ class Match(Expression):
     assert isinstance(comp, Comparator), \
            "Expected Comparator but got " + comp.__class__.__module__ + ":" + comp.__class__.__name__
     assert expression == None or isinstance(expression, Expression)
-    super(Match, self).__init__({"comp": comp})
+    super(Match, self).__init__({"comp": comp, "exp": expression})
     self.comp       = comp
     self.expression = expression
+  def as_label(self):
+    if not self.expression is None:
+      return self.comp.as_label() + "_" + self.expression.as_label()
+    else:
+      return self.comp.as_label()
 
 class Comparator(Code):
   def __init__(self, operator):
     assert operator in [ "<", "<=", ">", ">=", "==", "!=", "!", "*" ]
     super(Comparator, self).__init__({"operator": operator})
     self.operator = operator
+  def as_label(self):
+    return {
+      "<"  : "lt",      "<=" : "lteq",
+      ">"  : "gt",      ">=" : "gteq",
+      "==" : "eq",      "!=" : "nq",
+      "!"  : "not",     "*"  : "anything"
+    }[self.operator]
 
 class Anything(Comparator):
   def __init__(self):
