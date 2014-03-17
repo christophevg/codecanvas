@@ -14,8 +14,6 @@ class TestInstructions(unittest.TestCase):
     self.assertIsInstance(candidate, Code)
     self.assertRaises(NotImplementedError, candidate.append)
     self.assertRaises(NotImplementedError, candidate.contains)
-    self.assertRaises(NotImplementedError, candidate.insert_before)
-    self.assertRaises(NotImplementedError, candidate.insert_after)
 
   def assert_has_identifier(self, candidate):
     self.assertIsInstance(candidate.id, code.Identifier)

@@ -281,10 +281,9 @@ class Visitor(object):
 # Code implementations to override default functionality
 
 class WithoutChildModification(object):
-  def append(self, *children):        raise NotImplementedError
-  def contains(self, *children):      raise NotImplementedError
-  def insert_before(self, *siblings): raise NotImplementedError
-  def insert_after(self, *siblings):  raise NotImplementedError
+  def append(self, *children):            raise NotImplementedError
+  def contains(self, *children):          raise NotImplementedError
+  def _insert(self, relative, *siblings): raise NotImplementedError
 
 class WithoutChildren(WithoutChildModification):
   def _children(self): raise NotImplementedError
