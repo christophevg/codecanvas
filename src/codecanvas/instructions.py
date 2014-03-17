@@ -239,10 +239,11 @@ class SimpleVariable(Identified, Variable):
     self.id   = id
     self.info = info
 
+# TODO: rename to indexer or something like that
 class ListVariable(Identified, Variable):
   def __init__(self, id, index):
     if isstring(id): id = Identifier(id)
-    assert isinstance(id, Identifier)
+    assert isinstance(id, Identifier) or isinstance(id, Variable)
     super(ListVariable, self).__init__({"id": id, "index": index})
     self.id   = id
     self.index = index
@@ -273,6 +274,18 @@ class ObjectProperty(Variable):
     self.type = type
   def __repr__(self):
     return "ObjectProperty(" + repr(self.obj) + "." + repr(self.prop) + ":" + repr(self.type) + ")"
+
+class StructProperty(Variable):
+  def __init__(self, obj, prop):
+    if isstring(obj): obj = Object(obj)
+    assert isinstance(obj, Object), "got " + obj.__class__.__name__
+    if isstring(prop): prop = Identifier(prop)
+    assert isinstance(prop, Identifier)
+    super(StructProperty, self).__init__({"obj" : obj, "prop": prop})
+    self.obj  = obj
+    self.prop = prop
+  def __repr__(self):
+    return "ObjectProperty(" + repr(self.obj) + "." + repr(self.prop) + ")"
 
 @novisiting
 class UnOp(Expression):
@@ -403,7 +416,7 @@ class AtomLiteral(Identified, Literal):
 
 # Types
 
-class Type(WithoutChildModification, Code): pass
+class Type(Code): pass
 
 class NamedType(Type):
   def __init__(self, name):
@@ -462,6 +475,16 @@ class FloatType(Type):
 class LongType(Type):
   def __repr__(self): return "long"
 
+class UnionType(Type):
+  def __init__(self, name, properties=[]):
+    if isstring(name): name = Identifier(name)
+    assert isinstance(name, Identifier)
+    super(UnionType, self).__init__({"name":name})
+    self.name       = name
+  def __repr__(self):
+    return "union " + self.name + \
+           "(" + ",".join(",", [prop for prop in self]) + ")"
+
 # Matching
 
 class Match(Expression):
@@ -500,7 +523,7 @@ class VariableDecl(Identified, Variable):
   def __init__(self, id, type):
     if isstring(id): id = Identifier(id)
     assert isinstance(id,   Identifier)
-    assert isinstance(type, Type)
+    assert isinstance(type, Type), "got " + type.__class__.__name__
     super(VariableDecl, self).__init__({"id":id, "type":type})
     self.id   = id
     self.type = type

@@ -205,6 +205,12 @@ class Visitor(instructions.Visitor):
   def visit_AmountType(self, type):
     type.type = self.accept(type.type)
 
+  @stacked
+  def visit_UnionType(self, code):
+    for index, child in enumerate(code):
+      self.child = index
+      code.update_child(index, self.accept(child))
+
   def visit_AtomLiteral(self, literal): pass
   def visit_IntegerLiteral(self, literal): pass
   def visit_FloatLiteral(self, literal): pass
@@ -214,6 +220,11 @@ class Visitor(instructions.Visitor):
     prop.obj  = self.accept(prop.obj)
     prop.prop = self.accept(prop.prop)
     prop.type = self.accept(prop.type)
+
+  @stacked
+  def visit_StructProperty(self, prop):
+    prop.obj  = self.accept(prop.obj)
+    prop.prop = self.accept(prop.prop)
 
   @stacked
   def visit_Not(self, op):

@@ -513,8 +513,14 @@ class Dumper(language.Dumper):
            "\n} " + name + ";"
 
   @stacked
+  def visit_UnionType(self, struct):
+    return "union { " + (" ".join([prop.accept(self) for prop in struct])) + "}"
+
+  @stacked
   def visit_Property(self, prop):
-    return prop.type.accept(self) + " " + prop.name.accept(self) + ";"
+    return prop.type.accept(self) + " " + prop.name.accept(self) + \
+      ("" if not isinstance(prop.type, code.AmountType) else "[" + str(prop.type.size) +"]") + \
+      ";"
 
   # Fragments
 
@@ -551,6 +557,10 @@ class Dumper(language.Dumper):
   @stacked
   def visit_ObjectProperty(self, prop):
     return prop.obj.accept(self) + "->" + prop.prop.accept(self)
+
+  @stacked
+  def visit_StructProperty(self, prop):
+    return prop.obj.accept(self) + "." + prop.prop.accept(self)
 
   @stacked
   def visit_Comment(self, comment):
