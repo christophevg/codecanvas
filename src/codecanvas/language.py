@@ -55,9 +55,9 @@ class Visitor(instructions.Visitor):
   def visit_Function(self, code):
     for index, child in enumerate(code):
       self.child = index
-      # TODO: fix this ;-)
-      try: code.update_child(index, self.accept(child))
-      except: pass
+      update = self.accept(child)
+      try: code.update_child(code.children.index(child), update)
+      except: pass    # index(child) fails when child is no longer in the list
 
   @stacked
   def visit_Block(self, code):
