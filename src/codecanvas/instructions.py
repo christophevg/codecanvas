@@ -239,6 +239,14 @@ class SimpleVariable(Identified, Variable):
     self.id   = id
     self.info = info
 
+class ListVariable(Identified, Variable):
+  def __init__(self, id, index):
+    if isstring(id): id = Identifier(id)
+    assert isinstance(id, Identifier)
+    super(ListVariable, self).__init__({"id": id, "index": index})
+    self.id   = id
+    self.index = index
+
 class Object(Identified, Variable):
   def __init__(self, id, type=None):
     if isstring(id): id = Identifier(id)
@@ -415,6 +423,15 @@ class ManyType(Type):
     self.type = type
   def __repr__(self): return "many " + str(self.type)
 
+class AmountType(Type):
+  def __init__(self, type, size):
+    assert isinstance(type, Type), \
+           "Expected Type but got " + type.__class__.__name__
+    super(AmountType, self).__init__({})
+    self.type = type
+    self.size = size
+  def __repr__(self): return str(self.type) + "[" + str(self.size) + "]"
+
 class TupleType(Type):
   def __init__(self, types):
     for type in types:
@@ -478,6 +495,15 @@ class Comparator(Code):
 class Anything(Comparator):
   def __init__(self):
     super(Anything, self).__init__("*")
+
+class VariableDecl(Identified, Variable):
+  def __init__(self, id, type):
+    if isstring(id): id = Identifier(id)
+    assert isinstance(id,   Identifier)
+    assert isinstance(type, Type)
+    super(VariableDecl, self).__init__({"id":id, "type":type})
+    self.id   = id
+    self.type = type
 
 # A visitor for instructions = Code or Code
 

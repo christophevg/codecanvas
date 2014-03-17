@@ -131,6 +131,9 @@ class Visitor(instructions.Visitor):
 
   @stacked
   def visit_SimpleVariable(self, code): pass
+
+  @stacked
+  def visit_ListVariable(self, code): pass
   
   # literals
   @stacked
@@ -196,6 +199,10 @@ class Visitor(instructions.Visitor):
 
   @stacked
   def visit_ManyType(self, type):
+    type.type = self.accept(type.type)
+
+  @stacked
+  def visit_AmountType(self, type):
     type.type = self.accept(type.type)
 
   def visit_AtomLiteral(self, literal): pass
@@ -277,6 +284,10 @@ class Visitor(instructions.Visitor):
   def visit_Anything(self, comp): pass
 
   def visit_Return(self, op): pass
+  
+  def visit_VariableDecl(self, var):
+    var.id.accept(self)
+    var.type.accept(self)
 
 class Dumper(Visitor):
   """

@@ -17,15 +17,6 @@ class RefType(code.Type):
     super(RefType, self).__init__({})
     self.type = type
 
-class VariableDecl(code.Identified, code.Variable):
-  def __init__(self, id, type):
-    if isstring(id): id = code.Identifier(id)
-    assert isinstance(id,   code.Identifier)
-    assert isinstance(type, code.Type)
-    super(VariableDecl, self).__init__({"id":id, "type":type})
-    self.id   = id
-    self.type = type
-
 class Deref(code.Variable):
   def __init__(self, pointer):
     self.pointer = pointer
@@ -124,7 +115,7 @@ class Transformer(language.Visitor):
       else:
         children.append(item)
     
-    # FIXME: this is to intrusive ;-)
+    # FIXME: this is too intrusive ;-(
     list.floating = children
 
   atoms = []
@@ -328,11 +319,11 @@ class Transformer(language.Visitor):
     # create function and return it
     return (self.stack[0].find("lists").select("dec").append(
       code.Function(name, type=code.IntegerType(), params=params)
-          .contains(code.Assign(VariableDecl("removed", code.IntegerType()),
+          .contains(code.Assign(code.VariableDecl("removed", code.IntegerType()),
                                 code.IntegerLiteral(0)),
-                    code.Assign(VariableDecl("iter", RefType(type.type)),
+                    code.Assign(code.VariableDecl("iter", RefType(type.type)),
                                 Deref(code.SimpleVariable("list"))),
-                    code.Assign(VariableDecl("prev", RefType(type.type)),
+                    code.Assign(code.VariableDecl("prev", RefType(type.type)),
                                 Null()),
                     body,
                     code.Return(code.SimpleVariable("removed"))
@@ -507,6 +498,10 @@ class Dumper(language.Dumper):
     return type.type.accept(self) + "*"
 
   @stacked
+  def visit_AmountType(self, type):
+    return type.type.accept(self)
+
+  @stacked
   def visit_ObjectType(self, type):
     return type.name + "_t*"
 
@@ -590,6 +585,10 @@ class Dumper(language.Dumper):
   def visit_SimpleVariable(self, var):
     return var.id.accept(self)
 
+  @stacked
+  def visit_ListVariable(self, var):
+    return var.id.accept(self) + "[" + str(var.index) + "]"
+
   # Expressions
   
   @stacked
@@ -644,7 +643,10 @@ class Dumper(language.Dumper):
 
   @stacked
   def visit_VariableDecl(self, decl):
-    return decl.type.accept(self) + " " + decl.name
+    return decl.type.accept(self) + " " + decl.name + \
+      ("" if not isinstance(decl.type, code.AmountType) else "[" + str(decl.type.size) +"]") + \
+      ("" if isinstance(self.stack[-2], code.Assign) else ";")
+      # a bit specific, but for now it seems the only real possibility
 
   @stacked
   def visit_Deref(self, ref):
