@@ -92,6 +92,30 @@ class Transformer(language.Visitor):
 
       unit.select("tuples", "def").append(struct)
 
+      # add constructor
+      params = []
+      for index, type in enumerate(tuple.types):
+        params.append(code.Parameter("elem_"+str(index), type))
+      constructor = code.Function("make_" + name, type=RefType(code.NamedType(name+"_t")), params=params)
+      constructor.append(
+        # tuple_0_t* tuple = malloc(sizeof(tuple_0_t))
+        code.Assign(
+          code.VariableDecl("tuple", RefType(code.NamedType(name+"_t"))),
+          code.FunctionCall("malloc", arguments=[
+            code.FunctionCall("sizeof", arguments=[code.SimpleVariable(name+"_t")])
+          ]))
+      )
+      # tuple->elem_0 = elem_0
+      # tuple->elem_1 = elem_1
+      for index in range(len(tuple.types)):
+        constructor.append(
+          code.Assign(
+            code.ObjectProperty("tuple", "elem_" + str(index)),
+            code.SimpleVariable("elem_"+str(index))
+          )
+        )
+      unit.select("tuples", "dec").append(constructor)
+
       named_type = code.NamedType(name)
 
     # replace tuple type by a NamedType
@@ -179,7 +203,7 @@ class Transformer(language.Visitor):
     # converted to matchers
     # TODO: make this generic ;-(
     matchers  = []
-    arguments = [call.obj]
+    arguments = []
     for arg in call.arguments:
       if isinstance(arg, code.ListLiteral):
         for subarg in arg:
@@ -208,25 +232,29 @@ class Transformer(language.Visitor):
         else:
           arguments.append(arg)
 
+    # determine type of list
+    type_name = {
+      "NamedType" : lambda: call.obj.type.type.name
+    }[str(call.obj.type.type.__class__.__name__)]()
+
     # create list manipulating customized function
     [function, byref] = \
-      self.create_list_manipulator(call.obj.type, call.method.name, matchers)
+      self.create_list_manipulator(call.obj.type, type_name, call.method.name,
+                                   matchers)
 
-    if byref: arguments[0] = AddressOf(arguments[0])
+    if byref: obj = AddressOf(call.obj)
+    else:     obj = call.obj
+
+    arguments = [obj, code.FunctionCall("make_" + type_name, arguments, type=call.obj.type)]
 
     # create FunctionCall with object as first argument
     # and replace methodcall by functioncall
     return code.FunctionCall(function.name, arguments, type=function.type)
 
-  def create_list_manipulator(self, type, method, matchers):
+  def create_list_manipulator(self, type, type_name, method, matchers):
     """
     Dispatcher for the creation of list-manipulating functions.
     """
-    # determine type of list
-    type_name = {
-      "NamedType" : lambda: type.type.name
-    }[str(type.type.__class__.__name__)]()
-
     self.prepare_lists_module()
     return {
       "contains": self.create_list_contains,
@@ -273,7 +301,9 @@ class Transformer(language.Visitor):
     if not function is None: return function
     
     # pushing accepts the type of the list's content as parameter(d)
-    params = [ code.Parameter("list", RefType(type)) ]
+    params = [ code.Parameter("list", RefType(type)),
+               code.Parameter("item", RefType(type.type))
+             ]
 
     return (self.stack[0].find("lists").select("dec").append(
       code.Function(name, type=code.VoidType(), params=params)
