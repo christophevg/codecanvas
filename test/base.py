@@ -50,10 +50,24 @@ class TestBase(unittest.TestCase):
 
   def test_insert(self):
     code = Code("something")
-    child2 = code.append(Code("child2"))
-    child1 = Code("child1").insert_before(child2)
-    Code("child3").insert_after(child1)
-    self.assertEqual(str(code), "something\n  child1\n  child3\n  child2")
+    childa = code.append(Code("childa"))
+    childb = code.append(Code("childb"))
+    childc = code.append(Code("childc"))
+    childd = code.append(Code("childd"))
+
+    child1 = Code("child1").insert_before(childc)
+    child2 = Code("child2").insert_before(childc)
+    child3 = Code("child3").insert_after(child1)
+
+    self.assertEqual("\n" + str(code), """
+something
+  childa
+  childb
+  child1
+  child3
+  child2
+  childc
+  childd""")
 
   def create_code(self):
     return Code("something").contains(
