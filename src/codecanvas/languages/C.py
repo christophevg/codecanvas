@@ -101,20 +101,80 @@ class Transformer(language.Visitor):
         # tuple_0_t* tuple = malloc(sizeof(tuple_0_t))
         code.Assign(
           code.VariableDecl("tuple", RefType(code.NamedType(name+"_t"))),
-          code.FunctionCall("malloc", arguments=[
-            code.FunctionCall("sizeof", arguments=[code.SimpleVariable(name+"_t")])
+          code.FunctionCall("malloc", type=type, arguments=[
+            code.FunctionCall("sizeof", type=code.IntegerType(),
+                              arguments=[code.SimpleVariable(name+"_t")])
           ]))
       )
       # tuple->elem_0 = elem_0
       # tuple->elem_1 = elem_1
-      for index in range(len(tuple.types)):
-        constructor.append(
-          code.Assign(
-            code.ObjectProperty("tuple", "elem_" + str(index)),
-            code.SimpleVariable("elem_"+str(index))
+      for index, type in enumerate(tuple.types):
+        if isinstance(type, code.ObjectType):
+          constructor.append(
+            code.Assign(
+              code.ObjectProperty("tuple", "elem_" + str(index)),
+              code.FunctionCall("copy_" + str(type.name), type=type, arguments=[
+                code.ObjectProperty("tuple", "elem_"+str(index))
+              ])
+            )
           )
-        )
+        else:
+          constructor.append(
+            code.Assign(
+              code.ObjectProperty("tuple", "elem_" + str(index)),
+              code.SimpleVariable("elem_"+str(index))
+            )
+          )
       unit.select("tuples", "dec").append(constructor)
+
+      # add (destructor) free
+      params = [code.Parameter("tuple", RefType(code.NamedType(name+"_t")))]
+      destructor = code.Function("free_" + name, params=params)
+      for index, type in enumerate(tuple.types):
+        if isinstance(type, code.ObjectType):
+          destructor.append(
+            code.FunctionCall("free_" + str(type.name), type=type, arguments=[
+              code.ObjectProperty("tuple", "elem_"+str(index))
+            ])
+          )
+      destructor.append(
+        code.FunctionCall("free", arguments=[
+          code.SimpleVariable("tuple")
+        ])
+      )
+      unit.select("tuples", "dec").append(destructor)
+
+      # add copy (-constructor)
+      params = [code.Parameter("source", RefType(code.NamedType(name+"_t")))]
+      copyconstructor = code.Function("copy_" + name, params=params,
+                                       type=RefType(code.NamedType(name+"_t")))
+      copyconstructor.append(
+        # tuple_0_t* tuple = malloc(sizeof(tuple_0_t))
+        code.Assign(
+          code.VariableDecl("tuple", RefType(code.NamedType(name+"_t"))),
+          code.FunctionCall("malloc", type=type, arguments=[
+            code.FunctionCall("sizeof", type=code.IntegerType(),
+                              arguments=[code.SimpleVariable(name+"_t")])
+          ]))
+      )
+      for index, type in enumerate(tuple.types):
+        if isinstance(type, code.ObjectType):
+          copyconstructor.append(
+            code.Assign(
+              code.ObjectProperty("tuple", "elem_" + str(index)),
+              code.FunctionCall("copy_" + str(type.name), type=type, arguments=[
+                code.ObjectProperty("source", "elem_"+str(index))
+              ])
+            )
+          )
+        else:
+          copyconstructor.append(
+            code.Assign(
+              code.ObjectProperty("tuple", "elem_" + str(index)),
+              code.ObjectProperty("source", "elem_"+str(index))
+            )
+          )
+      unit.select("tuples", "dec").append(copyconstructor)
 
       named_type = code.NamedType(name)
 
@@ -320,7 +380,7 @@ class Transformer(language.Visitor):
     function = self.stack[0].find(name)
     if not function is None: return function
 
-    params = [ code.Parameter("iter", RefType(type)) ]
+    params = [ code.Parameter("list", RefType(type)) ]
 
     # turn matchers into list of conditions
     [condition, suffix] = self.transform_matchers_into_condition(matchers)
@@ -337,7 +397,8 @@ class Transformer(language.Visitor):
                      [ code.Assign(code.ObjectProperty("prev", "next"),
                                    code.ObjectProperty("iter", "next")) ]
                    ),
-                   code.FunctionCall("free", [ code.SimpleVariable("iter")]),
+                   code.FunctionCall("free_"+type_name,
+                                    [ code.SimpleVariable("iter") ]),
                    code.Inc(code.SimpleVariable("removed"))
                  ]),
                  code.Assign(code.SimpleVariable("prev"),
