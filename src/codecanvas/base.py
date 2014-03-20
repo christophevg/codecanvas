@@ -33,7 +33,8 @@ class Code(object):
   children = property(_children)
 
   def remove_child(self, index):
-    self.update_child(index, None)
+    try:    self.update_child(index, None)
+    except: pass
 
   def update_child(self, index, value):
     if index < len(self.sticking["top"]):
