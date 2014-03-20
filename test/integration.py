@@ -101,7 +101,7 @@ printf("loop");
 
   def test_multi_line_comment(self):
     tree = code.Comment("hello\nworld")
-    self.assertEqualToSource(tree, "/* hello\nworld */")
+    self.assertEqualToSource(tree, "/*\n  hello\n  world\n*/")
 
   def test_many_type(self):
     tree = code.ManyType(code.ByteType())

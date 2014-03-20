@@ -656,7 +656,7 @@ class Dumper(language.Dumper):
   @stacked
   def visit_Comment(self, comment):
     if "\n" in comment.comment:
-      return "/* " + comment.comment + " */"
+      return "/*\n  " + "\n  ".join(comment.comment.split("\n")) + "\n*/"
     else:
       return "// " + comment.comment
 
