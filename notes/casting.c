@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <time.h>
 
-#include "../../../../an-avr-lib/bool.h"
+#include "../../../../platforms/moose/bool.h"
 
 typedef union conv2bytes {
   float   float_value;
