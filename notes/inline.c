@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <time.h>
 
-#include "../../../../platforms/moose/bool.h"
+#include "bool.h"
 
 // tuple as a struct with additional self referencing next pointer in case that
 // it is used in a 
