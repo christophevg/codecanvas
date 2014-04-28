@@ -81,10 +81,14 @@ class Transformer(language.Visitor):
     except:
       # TODO: create nicer/functional names ;-)
       name = "tuple_" + str(Transformer.tuple_index)
-      Transformer.tuple_index += 1
       struct = code.StructuredType(name)
       for index, type in enumerate(tuple.types):
         struct.append(code.Property("elem_"+str(index), type))
+      # add a self-referencing pointer for use in linked lists
+      struct.append(code.Property("next", RefType(code.NamedType(
+                      "struct tuple_" + str(Transformer.tuple_index) + "_t"
+                    ))))
+      Transformer.tuple_index += 1
 
       unit = self.stack[0]
       if unit.find("tuples") == None:
