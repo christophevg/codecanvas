@@ -78,7 +78,7 @@ Module hello [hello]
 
     # Generate the code of the main function
     self.assertEqual("\n" + C.Emitter().emit(unit), """
-#import <stdio.h>
+#include <stdio.h>
 void main(void) {
 printf("Hello World\\n");
 }""")

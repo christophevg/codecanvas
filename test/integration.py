@@ -64,7 +64,7 @@ class TestIntegration(unittest.TestCase):
         .contains(code.Print("endless"),
                   code.Print("loop")))
     self.assertEqualToSource(self.unit, """
-#import <stdio.h>
+#include <stdio.h>
 while(TRUE) {
 printf("endless");
 printf("loop");
@@ -75,7 +75,7 @@ printf("loop");
       .append(code.RepeatUntil(code.BooleanLiteral(False)) \
         .contains(code.Print("endless"), code.Print("loop")))
     self.assertEqualToSource(self.unit, """
-#import <stdio.h>
+#include <stdio.h>
 do {
 printf("endless");
 printf("loop");

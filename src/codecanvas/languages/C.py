@@ -507,7 +507,7 @@ class Dumper(language.Dumper):
   def visit_Import(self, importer):
     file = importer.imported
     if not file[0:1] == "<": file = '"' + file + '.h"'
-    return "#import " + file
+    return "#include " + file
 
   @stacked
   def visit_IfStatement(self, cond):
