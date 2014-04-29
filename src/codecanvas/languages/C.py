@@ -815,3 +815,11 @@ class Builder(language.Builder, Dumper):
 
   def ext(self, section):
     return { "def": "h", "dec": "c" }[section]
+
+  def transform_Section(self, code, content):
+    if code.name == "def":
+      content = "#ifndef __" + self.module.name.replace("-", "_").upper() + "_H\n" + \
+                "#define __" + self.module.name.replace("-", "_").upper() + "_H\n\n" + \
+                content + \
+                "\n\n#endif\n"
+    return content

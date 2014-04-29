@@ -342,6 +342,10 @@ class Builder(object):
     file_name = os.path.join(self.output, self.module.name + "." + self.ext(code.name))
     content = "\n".join([child.accept(self) for child in code])
     if not content == "":
+      content = self.transform_Section(code, content)
       file = open(file_name, 'w+')
       file.write(content + "\n")
       file.close()
+
+  def transform_Section(self, code, content):
+    return content
