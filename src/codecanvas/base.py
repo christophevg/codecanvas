@@ -194,7 +194,7 @@ class Code(object):
       else:
         # no handler, that's ok
         pass
-    return ""
+    return None
 
 # wrapper for multiple Codes, offering the same interface, dispatching to list
 # of Codes and aggregating results
