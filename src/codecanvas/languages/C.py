@@ -14,8 +14,9 @@ from codecanvas.platform import Platform
 # a few additional Code classes for C-specific things
 class RefType(code.Type):
   def __init__(self, type):
-    super(RefType, self).__init__({})
+    super(RefType, self).__init__({"type":type})
     self.type = type
+  def __repr__(self): return "ref to " + str(self.type)
 
 class Deref(code.Variable):
   def __init__(self, pointer):
