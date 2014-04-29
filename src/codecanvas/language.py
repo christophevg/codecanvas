@@ -318,7 +318,7 @@ class Dumper(Visitor):
 
 class Builder(object):
   """
-  Mixin class for overriding default behaviour of a Dumper, allowing it to
+  Mixin class for overriding default behavior of a Dumper, allowing it to
   construct output to files.
   """
   def __init__(self, output="output"):
