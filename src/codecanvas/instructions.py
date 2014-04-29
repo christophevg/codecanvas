@@ -482,8 +482,8 @@ class UnionType(Type):
     super(UnionType, self).__init__({"name":name})
     self.name       = name
   def __repr__(self):
-    return "union " + self.name + \
-           "(" + ",".join(",", [prop for prop in self]) + ")"
+    return "union " + self.name.name + \
+           "(" + ",".join([str(prop) for prop in self]) + ")"
 
 # Matching
 
