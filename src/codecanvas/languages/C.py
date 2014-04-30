@@ -749,9 +749,15 @@ class Dumper(language.Dumper):
 
   @stacked
   def visit_VariableDecl(self, decl):
-    return decl.type.accept(self) + " " + decl.name + \
-      ("" if not isinstance(decl.type, code.AmountType) else "[" + str(decl.type.size) +"]") + \
-      ("" if isinstance(self.stack[-2], code.Assign) else ";")
+    type_quantifier = ""
+    var_quantifier  = ""
+    inside_assign = isinstance(self.stack[-2], code.Assign)
+    if isinstance(decl.type, code.AmountType):
+      if inside_assign: type_quantifier = "*"
+      else:             var_quantifier = "[" + str(decl.type.size) +"]"
+    return decl.type.accept(self) + type_quantifier + " " + \
+           decl.name + var_quantifier + \
+      ("" if inside_assign else ";")
       # a bit specific, but for now it seems the only real possibility
 
   @stacked
