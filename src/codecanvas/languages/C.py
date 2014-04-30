@@ -92,9 +92,17 @@ class Transformer(language.Visitor):
       Transformer.tuple_index += 1
 
       unit = self.stack[0]
-      if unit.find("tuples") == None:
-        unit.append(structure.Module("tuples"))
 
+      # initialize module
+      if unit.find("tuples") == None:
+        module = unit.append(structure.Module("tuples"))
+        module.select("dec").append(code.Import("tuples"))
+        # imports
+        module.select("def").append(code.Import("<stdint.h>"))
+        module.select("def").append(code.Import("<stdlib.h>"))
+        module.select("def").append(code.Import("foo-lib/payload"))
+
+      # add this tuple
       unit.select("tuples", "def").append(struct)
 
       # add constructor
@@ -102,6 +110,11 @@ class Transformer(language.Visitor):
       for index, type in enumerate(tuple.types):
         params.append(code.Parameter("elem_"+str(index), type))
       constructor = code.Function("make_" + name + "_t", type=RefType(code.NamedType(name+"_t")), params=params)
+      unit.select("tuples", "def").append(
+        code.Prototype( "make_" + name + "_t",
+                        type=RefType(code.NamedType(name+"_t")),
+                        params=params)
+      )
       constructor.append(
         # tuple_0_t* tuple = malloc(sizeof(tuple_0_t))
         code.Assign(
@@ -130,17 +143,22 @@ class Transformer(language.Visitor):
               code.SimpleVariable("elem_"+str(index))
             )
           )
+      constructor.append(code.Return(code.SimpleVariable("tuple")))
       unit.select("tuples", "dec").append(constructor)
 
       # add (destructor) free
       params = [code.Parameter("tuple", RefType(code.NamedType(name+"_t")))]
       destructor = code.Function("free_" + name + "_t", params=params)
+      unit.select("tuples", "def").append(
+        code.Prototype( "free_" + name + "_t", params=params )
+      )
       for index, type in enumerate(tuple.types):
         if isinstance(type, code.ObjectType):
           destructor.append(
-            code.FunctionCall("free_" + str(type.name), type=type, arguments=[
-              code.ObjectProperty("tuple", "elem_"+str(index))
-            ])
+            code.FunctionCall("free_" + str(type.name), type=code.VoidType(),
+              arguments=[
+                code.ObjectProperty("tuple", "elem_"+str(index))
+              ])
           )
       destructor.append(
         code.FunctionCall("free", arguments=[
@@ -153,6 +171,10 @@ class Transformer(language.Visitor):
       params = [code.Parameter("source", RefType(code.NamedType(name+"_t")))]
       copyconstructor = code.Function("copy_" + name + "_t", params=params,
                                        type=RefType(code.NamedType(name+"_t")))
+      unit.select("tuples", "def").append(
+        code.Prototype("copy_" + name + "_t", params=params,
+                       type=RefType(code.NamedType(name+"_t")))
+      )
       copyconstructor.append(
         # tuple_0_t* tuple = malloc(sizeof(tuple_0_t))
         code.Assign(
@@ -179,6 +201,7 @@ class Transformer(language.Visitor):
               code.ObjectProperty("source", "elem_"+str(index))
             )
           )
+      copyconstructor.append(code.Return(code.SimpleVariable("tuple")))
       unit.select("tuples", "dec").append(copyconstructor)
 
       named_type = code.NamedType(name+"_t")
@@ -229,11 +252,16 @@ class Transformer(language.Visitor):
   @stacked
   def visit_Function(self, function):
     """
-    Prune empty function declarations.
+    1. Prune empty function declarations.
+    2. Add declarations in module definition (until public/private support)
     """
     if len(function.children) < 1:
       if len(self.stack) > 1:
         self.stack[-2].remove_child(self.child)
+    else:  # 2. add declarations
+      module = self.stack[1]
+      declaration = function
+      module.select("def").append(code.Prototype(function.name, function.type, function.params))
   
     super(Transformer, self).visit_Function(function)
 
@@ -255,7 +283,7 @@ class Transformer(language.Visitor):
 
     name = call.obj.type.name + "_" + call.method.name
     # create FunctionCall with object as first argument
-    function = code.FunctionCall(name, [call.obj])
+    function = code.FunctionCall(name, arguments=[call.obj], type=call.type)
     for arg in call.arguments:
       function.arguments.append(arg)
 
@@ -310,11 +338,15 @@ class Transformer(language.Visitor):
     if byref: obj = AddressOf(call.obj)
     else:     obj = call.obj
 
-    arguments = [obj, code.FunctionCall("make_" + type_name, arguments, type=call.obj.type)]
+    new_arguments = [obj]
+    if len(arguments) > 0:
+      new_arguments.append(
+       code.FunctionCall("make_" + type_name, arguments, type=call.obj.type)
+      )
 
     # create FunctionCall with object as first argument
     # and replace methodcall by functioncall
-    return code.FunctionCall(function.name, arguments, type=function.type)
+    return code.FunctionCall(function.name, new_arguments, type=function.type)
 
   def create_list_manipulator(self, type, type_name, method, matchers):
     """
@@ -331,7 +363,11 @@ class Transformer(language.Visitor):
     unit = self.stack[0]
     # make sure that the listing module exists, else create it
     if unit.find("lists") == None:
-      unit.append(structure.Module("lists"))
+      module = unit.append(structure.Module("lists"))
+      module.select("dec").append(code.Import("lists"))
+      module.select("def").append(code.Import("<stdlib.h>"))
+      module.select("def").append(code.Import("tuples"))
+      module.select("def").append(code.Import("foo-lib/time"))
 
   def create_list_contains(self, type, type_name, matchers):
     name     = "list_of_" + type_name + "s_contains"
@@ -352,6 +388,10 @@ class Transformer(language.Visitor):
                 code.Assign("iter",
                             code.ObjectProperty("iter", "next"))
     )
+    # provide a prototype
+    self.stack[0].find("lists").select("def").append(
+      code.Prototype(name, type=code.BooleanType(), params=params)
+    )
     # create function and return it
     return (self.stack[0].find("lists").select("dec").append(
       code.Function(name, type=code.BooleanType(), params=params)
@@ -370,6 +410,10 @@ class Transformer(language.Visitor):
                code.Parameter("item", RefType(type.type))
              ]
 
+    # provide a prototype
+    self.stack[0].find("lists").select("def").append(
+      code.Prototype(name, type=code.VoidType(), params=params)
+    )
     return (self.stack[0].find("lists").select("dec").append(
       code.Function(name, type=code.VoidType(), params=params)
           .contains(
@@ -412,6 +456,10 @@ class Transformer(language.Visitor):
                              code.ObjectProperty("iter", "next"))
                )
   
+    # provide a prototype
+    self.stack[0].find("lists").select("def").append(
+      code.Prototype(name, type=code.IntegerType(), params=params)
+    )
     # create function and return it
     return (self.stack[0].find("lists").select("dec").append(
       code.Function(name, type=code.IntegerType(), params=params)
