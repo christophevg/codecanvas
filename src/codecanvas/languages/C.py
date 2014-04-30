@@ -101,7 +101,7 @@ class Transformer(language.Visitor):
       params = []
       for index, type in enumerate(tuple.types):
         params.append(code.Parameter("elem_"+str(index), type))
-      constructor = code.Function("make_" + name, type=RefType(code.NamedType(name+"_t")), params=params)
+      constructor = code.Function("make_" + name + "_t", type=RefType(code.NamedType(name+"_t")), params=params)
       constructor.append(
         # tuple_0_t* tuple = malloc(sizeof(tuple_0_t))
         code.Assign(
@@ -134,7 +134,7 @@ class Transformer(language.Visitor):
 
       # add (destructor) free
       params = [code.Parameter("tuple", RefType(code.NamedType(name+"_t")))]
-      destructor = code.Function("free_" + name, params=params)
+      destructor = code.Function("free_" + name + "_t", params=params)
       for index, type in enumerate(tuple.types):
         if isinstance(type, code.ObjectType):
           destructor.append(
@@ -151,7 +151,7 @@ class Transformer(language.Visitor):
 
       # add copy (-constructor)
       params = [code.Parameter("source", RefType(code.NamedType(name+"_t")))]
-      copyconstructor = code.Function("copy_" + name, params=params,
+      copyconstructor = code.Function("copy_" + name + "_t", params=params,
                                        type=RefType(code.NamedType(name+"_t")))
       copyconstructor.append(
         # tuple_0_t* tuple = malloc(sizeof(tuple_0_t))
@@ -181,7 +181,7 @@ class Transformer(language.Visitor):
           )
       unit.select("tuples", "dec").append(copyconstructor)
 
-      named_type = code.NamedType(name)
+      named_type = code.NamedType(name+"_t")
 
     # replace tuple type by a NamedType
     Transformer.tuples[repr(tuple)] = named_type
@@ -599,14 +599,18 @@ class Dumper(language.Dumper):
 
   @stacked
   def visit_ObjectType(self, type):
-    return type.name + "_t*"
+    name = type.name
+    if name[-1] == "s": name = name[0:-1]
+    return name + "_t*"
 
   @stacked
   def visit_StructuredType(self, struct):
-    name = struct.name.accept(self) + "_t"
-    return "typedef struct " + name + " {\n" + \
+    name = struct.name.accept(self)
+    if name[-1] == "s": name = name[0:-1] # strip off trailing s from types
+    struct_name = name + "_t"
+    return "typedef struct " + struct_name + " {\n" + \
            "\n".join([prop.accept(self) for prop in struct]) + \
-           "\n} " + name + ";"
+           "\n} " + struct_name + ";"
 
   @stacked
   def visit_UnionType(self, struct):
