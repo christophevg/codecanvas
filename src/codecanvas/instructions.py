@@ -340,14 +340,17 @@ class FunctionCall(Call):
     return self.function.name
 
 class MethodCall(Call):
-  def __init__(self, obj, method, arguments=[]):
+  def __init__(self, obj, method, arguments=[], type=None):
     assert isinstance(obj, Object) or isinstance(obj, ObjectProperty), \
            "Expected Object(Property), but got " + obj.__class__.__name__
     if isstring(method): method = Identifier(method)
+    if type is None: type = VoidType()
+    assert isinstance(type, Type), "but got " + type.__class__.__name__
     assert isinstance(method, Identifier)
     super(MethodCall, self).__init__({"obj": obj, "method": method}, arguments)
     self.obj       = obj
     self.method    = method
+    self.type      = type
 
 # Literals
 
