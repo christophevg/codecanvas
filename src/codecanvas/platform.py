@@ -5,6 +5,12 @@
 
 class Platform():
   
+  def setup(self, unit):
+    """
+    Allows a platform to set up basic infrastructure.
+    """
+    return NotImplementedError, "setup(self, unit)"
+  
   def type(self, type):
     """
     Used to map code.Type to platform specific type.
