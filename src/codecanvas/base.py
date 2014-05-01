@@ -51,7 +51,7 @@ class Code(object):
     index -= len(self.floating)
     if index < len(self.sticking["bottom"]):
       if value is None: self.sticking["bottom"].pop(index)
-      else:             self.sicking["bottom"] = value
+      else:             self.sticking["bottom"][index] = value
       return
     raise IndexError, "index " + str(index) + " is not within child range."
 
