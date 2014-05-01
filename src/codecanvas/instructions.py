@@ -140,7 +140,7 @@ class Print(WithoutChildren, Statement):
     self.string = string
     self.args   = args
 
-class Import(WithoutChildren, Statement):
+class Import(Statement):
   def __init__(self, imported):
     # TODO: checking
     super(Import, self).__init__({"imported": imported})
