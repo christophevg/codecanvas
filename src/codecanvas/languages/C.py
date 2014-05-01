@@ -101,6 +101,9 @@ class Transformer(language.Visitor):
         module.select("def").append(code.Import("<stdint.h>"))
         module.select("def").append(code.Import("<stdlib.h>"))
         module.select("def").append(code.Import("foo-lib/payload"))
+        # required import
+        anchor = unit.find("requires-tuples")
+        code.Import("tuples").insert_before(anchor)
 
       # add this tuple
       unit.select("tuples", "def").append(struct)
@@ -368,6 +371,8 @@ class Transformer(language.Visitor):
       module.select("def").append(code.Import("<stdlib.h>"))
       module.select("def").append(code.Import("tuples"))
       module.select("def").append(code.Import("foo-lib/time"))
+      # add to includes
+      unit.find("includes").append(code.Import("lists"))
 
   def create_list_contains(self, type, type_name, matchers):
     name     = "list_of_" + type_name + "s_contains"
