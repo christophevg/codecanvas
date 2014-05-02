@@ -560,7 +560,9 @@ class Dumper(language.Dumper):
   @stacked
   def visit_Import(self, importer):
     file = importer.imported
-    if not file[0:1] == "<": file = '"' + file + '.h"'
+    if file[-2:] == ".c": file = '"' + file + '"'
+    else:
+      if not file[0:1] == "<": file = '"' + file + '.h"'
     return "#include " + file
 
   @stacked
