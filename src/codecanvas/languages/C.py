@@ -372,7 +372,7 @@ class Transformer(language.Visitor):
       module.select("def").append(code.Import("tuples"))
       module.select("def").append(code.Import("foo-lib/time"))
       # add to includes
-      unit.find("includes").append(code.Import("lists"))
+      unit.select("includes", "def").append(code.Import("lists"))
 
   def create_list_contains(self, type, type_name, matchers):
     name     = "list_of_" + type_name + "s_contains"
