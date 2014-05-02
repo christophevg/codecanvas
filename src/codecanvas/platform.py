@@ -3,7 +3,7 @@
 
 # Platform interface for the code emission
 
-class Platform():
+class Platform(object):
   
   def setup(self, unit):
     """
