@@ -78,12 +78,10 @@ Module hello [hello]
 
     # Generate the code of the main function
     self.assertEqual("\n" + C.Emitter().emit(unit), """
-#include <stdio.h>
+void main(void);#include <stdio.h>
 void main(void) {
 printf("Hello World\\n");
 }""")
-
-    #C.Emitter().output_to("output").emit(unit)
 
 if __name__ == '__main__':
   suite = unittest.TestLoader().loadTestsFromTestCase(TestExamples)
