@@ -101,7 +101,7 @@ class IfStatement(WithoutChildModification, Statement):
   children = property(_children)
 
 class CaseStatement(WithoutChildModification, Statement):
-  def __init__(self, expression, cases, consequences):
+  def __init__(self, expression, cases, consequences, case_else=None):
     assert isinstance(expression, Expression)
     assert isinstance(cases, list)
     assert isinstance(consequences, list)
@@ -109,6 +109,7 @@ class CaseStatement(WithoutChildModification, Statement):
     self.expression   = expression
     self.cases        = cases
     self.consequences = consequences
+    self.case_else    = case_else
   def _children(self): return [self.cases, self.consequences]
   children = property(_children)
 

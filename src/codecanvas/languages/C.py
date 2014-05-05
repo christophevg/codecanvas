@@ -135,7 +135,7 @@ class Transformer(language.Visitor):
             code.Assign(
               code.ObjectProperty("tuple", "elem_" + str(index)),
               code.FunctionCall("copy_" + str(type.name), type=type, arguments=[
-                code.ObjectProperty("tuple", "elem_"+str(index))
+                code.SimpleVariable("elem_"+str(index))
               ])
             )
           )
@@ -218,7 +218,7 @@ class Transformer(language.Visitor):
     """
     If one of out items is a ListLiteral, import it, they will be collapsed
     anyway and then we don't have issues with arg counts.
-    ISSUE: this is caused by the convertion of Atoms to ListLiterals :-(
+    ISSUE: this is caused by the conversion of Atoms to ListLiterals :-(
     """
     super(Transformer, self).visit_ListLiteral(list)
     
@@ -310,6 +310,7 @@ class Transformer(language.Visitor):
               elif isinstance(subsubarg, code.Literal):
                 matchers.append(code.Match("==", subsubarg))
               else:
+                matchers.append(None)     # placeholder to match argument
                 arguments.push(subsubarg)
 
           else :
@@ -318,6 +319,7 @@ class Transformer(language.Visitor):
             elif isinstance(subarg, code.Literal):
               matchers.append(code.Match("==", subarg))
             else:
+              matchers.append(None)       # placeholder to match argument
               arguments.append(subarg)
           
       else:
@@ -326,6 +328,7 @@ class Transformer(language.Visitor):
         elif isinstance(arg, code.Literal):
           matchers.append(code.Match("==", arg))
         else:
+          matchers.append(None)           # placeholder to match argument
           arguments.append(arg)
 
     # determine type of list
@@ -336,22 +339,25 @@ class Transformer(language.Visitor):
     # create list manipulating customized function
     [function, byref] = \
       self.create_list_manipulator(call.obj.type, type_name, call.method.name,
-                                   matchers)
+                                   matchers, arguments)
 
     if byref: obj = AddressOf(call.obj)
     else:     obj = call.obj
 
     new_arguments = [obj]
-    if len(arguments) > 0:
+    if call.method.name != "remove" and len(arguments) > 0:
       new_arguments.append(
        code.FunctionCall("make_" + type_name, arguments, type=call.obj.type)
       )
+    else:
+      for arg in arguments:
+        new_arguments.append(arg)
 
     # create FunctionCall with object as first argument
     # and replace methodcall by functioncall
     return code.FunctionCall(function.name, new_arguments, type=function.type)
 
-  def create_list_manipulator(self, type, type_name, method, matchers):
+  def create_list_manipulator(self, type, type_name, method, matchers, arguments):
     """
     Dispatcher for the creation of list-manipulating functions.
     """
@@ -360,7 +366,7 @@ class Transformer(language.Visitor):
       "contains": self.create_list_contains,
       "push"    : self.create_list_push,
       "remove"  : self.create_list_remove
-    }[method](type, type_name, matchers)
+    }[method](type, type_name, matchers, arguments)
 
   def prepare_lists_module(self):
     unit = self.stack[0]
@@ -374,7 +380,7 @@ class Transformer(language.Visitor):
       # add to includes
       unit.select("includes", "def").append(code.Import("lists"))
 
-  def create_list_contains(self, type, type_name, matchers):
+  def create_list_contains(self, type, type_name, matchers, arguments):
     name     = "list_of_" + type_name + "s_contains"
     function = self.stack[0].find(name)
     if not function is None: return function
@@ -385,7 +391,7 @@ class Transformer(language.Visitor):
     body = code.WhileDo(code.NotEquals(code.SimpleVariable("iter"), Null()))
 
     # turn matchers into list of conditions
-    [condition, suffix] = self.transform_matchers_into_condition(matchers)
+    [condition, suffix] = self.transform_matchers_into_condition(matchers, arguments)
     name += suffix
     body.append(code.IfStatement(condition,
                   [ code.Return(code.BooleanLiteral(True)) ]
@@ -405,7 +411,7 @@ class Transformer(language.Visitor):
           ).tag(name)
     ), False)
 
-  def create_list_push(self, type, type_name, matchers):
+  def create_list_push(self, type, type_name, matchers, arguments):
     name     = "list_of_" + type_name + "s_push"
     function = self.stack[0].find(name)
     if not function is None: return function
@@ -429,15 +435,26 @@ class Transformer(language.Visitor):
           ).tag(name)
     ), True)
 
-  def create_list_remove(self, type, type_name, matchers):
+  def create_list_remove(self, type, type_name, matchers, arguments):
     name   = "list_of_" + type_name + "s_remove"
     function = self.stack[0].find(name)
     if not function is None: return function
 
     params = [ code.Parameter("list", RefType(type)) ]
 
+    # TODO: this should have been moved up and the info was a hack anyway :-(
+    args = 0
+    for arg in arguments:
+      params.append(
+        code.Parameter(
+          "arg_"+str(args),
+          code.ObjectType(arg.info.name)
+        )
+      )
+      args += 1
+
     # turn matchers into list of conditions
-    [condition, suffix] = self.transform_matchers_into_condition(matchers)
+    [condition, suffix] = self.transform_matchers_into_condition(matchers, arguments)
     name += suffix
 
     # construct body
@@ -479,11 +496,24 @@ class Transformer(language.Visitor):
           )
     ), True)
 
-  def transform_matchers_into_condition(self, matchers):
+  def transform_matchers_into_condition(self, matchers, arguments):
     suffix = ""
     conditions = []
+    args = 0
     for idx, matcher in enumerate(matchers):
-      if not isinstance(matcher, code.Anything) and matcher.comp.operator != "*":
+      if matcher == None:
+        arg_type = arguments[args].info.name
+        suffix += "_match_arg_" + str(args)
+        conditions.append(
+          code.FunctionCall("equal_"+arg_type, type=code.BooleanType(),
+            arguments=[
+              code.SimpleVariable("arg_"+str(args)),
+              code.ObjectProperty("iter", "elem_" + str(idx)),
+            ]
+          )
+        )
+        args += 1
+      elif not isinstance(matcher, code.Anything) and matcher.comp.operator != "*":
         suffix += "_match_" + matcher.as_label()
         conditions.append( {
           "<"  : code.LT,
@@ -744,7 +774,8 @@ class Dumper(language.Dumper):
   def visit_FunctionCall(self, call):
     return call.function.name + "(" + \
            ", ".join([arg.accept(self) for arg in call.arguments])  + ")" + \
-           (";" if isinstance(call.type, code.VoidType) else "")
+           (";" if isinstance(call.type, code.VoidType) \
+                or isinstance(self.stack[-2], code.Function) else "")
 
   @stacked
   def visit_SimpleVariable(self, var):
