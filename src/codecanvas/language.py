@@ -60,6 +60,9 @@ class Visitor(instructions.Visitor):
       except: pass    # index(child) fails when child is no longer in the list
 
   @stacked
+  def visit_Prototype(self, code): pass
+
+  @stacked
   def visit_Block(self, code):
     for index, child in enumerate(code):
       self.child = index
