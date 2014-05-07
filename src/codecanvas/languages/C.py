@@ -735,9 +735,13 @@ class Dumper(language.Dumper):
 
   @stacked
   def visit_ListLiteral(self, literal):
-    # strategy: listliterals are passes as varargs, with the number of args as
-    # a first argument
-    return str(len(literal.children)) + ", " + ", ".join([item.accept(self) for item in literal.children])
+    if len(literal.children) > 0 :
+      # strategy: listliterals are passes as varargs, with the number of args as
+      # a first argument
+      return str(len(literal.children)) + ", " + \
+             ", ".join([item.accept(self) for item in literal.children])
+    else:
+      return "NULL"
 
   @stacked
   def visit_ObjectProperty(self, prop):
