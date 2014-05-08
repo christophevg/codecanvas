@@ -166,6 +166,9 @@ class Visitor(instructions.Visitor):
         consequence[index] = self.accept(stmt)
 
   @stacked
+  def visit_ShiftLeft(self, stmt): pass
+
+  @stacked
   def visit_Assign(self, stmt):  self.visit_VarExpOp(stmt)
 
   @stacked
