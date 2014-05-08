@@ -297,6 +297,13 @@ class UnOp(Expression):
 
 class Not(UnOp): pass
 
+# TODO: extend this a bit ;-)
+class ShiftLeft(Expression):
+  def __init__(self, var, amount):
+    self.var  = var
+    self.amount = amount
+    super(ShiftLeft, self).__init__({"var": var, "amount": amount})
+
 @novisiting
 class BinOp(Expression):
   def __init__(self, left, right):

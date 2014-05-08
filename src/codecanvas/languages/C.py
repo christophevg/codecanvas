@@ -604,6 +604,10 @@ class Dumper(language.Dumper):
                   "}") if len(cond.false_clause) > 0 else "")
 
   @stacked
+  def visit_ShiftLeft(self, exp):
+    return exp.var.accept(self) + " >> " + str(exp.amount);
+
+  @stacked
   def visit_Assign(self, stmt):
     return stmt.operand.accept(self) + " = " + stmt.expression.accept(self) + ";"
 
